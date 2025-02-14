@@ -32,7 +32,7 @@ async function uploadToGemini(filePath, mimeType) {
 }
 
 const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash-thinking-exp-01-21",
+    model: "gemini-2.0-pro-exp-02-05",
 });
 
 const generationConfig = {
@@ -72,7 +72,7 @@ async function run(filePath = "uploads/handwritten_note.jpeg") {
             {
                 role: "user",
                 parts: [{
-                    text: "now, take these notes and convert them to a latex code to be added to an existing latex document.\n\nuse this formatting\n\nfor definitions\n\\dfn{Definiton Title}{\ncontent\n}\n\nfor notes\n\\nt{\ncontent\n}\n\nfor theorems\n\\thm{theorem title}{\ncontent\n}\n\nquestion and answer\n\\qs{Question title}{\nquestion content\n}\n\n\\sol\nsolution\n\nexamples\n\\ex{Question or example title}{\ncontent\n}\n\nalgorithms\n\\begin{algorithm}[H]\n\\KwIn{This is some input}\n\\KwOut{This is some output}\n\\SetAlgoLined\n\\SetNoFillComment\n\\tcc{This is a comment}\n\\vspace{3mm}\nsome code here;\n\n𝑥\n←\n0\nx←0\n;\n\n𝑦\n←\n0\ny←0\n;\n\\uIf{\n𝑥\n>\n5\nx>5\n} {\n\nx is greater than 5 \\tcp*{This is also a comment}\n}\\Else {\n\nx is less than or equal to 5;\n}\\ForEach{y in 0..5} {\n\n𝑦\n←\n𝑦\n+\n1\ny←y+1\n;\n}\\For{\n𝑦\n in \n0..5\n} {\n\n𝑦\n←\n𝑦\n−\n1\ny←y−1\n;\n}\\While{\n𝑥\n>\n5\nx>5\n}tvi {\n\n𝑥\n←\n𝑥\n−\n1\nx←x−1\n;\n}\\Return Return something here;\n\\caption{what}\n\\end{algorithm}\n\nthe commands are already implemented\n\nalso, never use ** for bold, always use enumerate/itemize\n\ninsert section and subsection where necessary\n\ncreate all graphs/diagrams with tikz or other packages, do not use float options such as \begin{figure}[H] EVER \n\nsince this code will be added to an existing document, return the body sections\n",
+                    text: "now, take these notes and convert them to a latex code to be added to an existing latex document.\nuse this formatting\nfor definitions\n\\dfn{Definiton Title}{\ncontent\n}\nfor notes\n\\nt{\ncontent\n}\nfor theorems\n\\thm{theorem title}{\ncontent\n}\nquestion and answer\n\\qs{Question title}{\nquestion content\n}\n\\sol\nsolution\nexamples\n\\ex{Question or example title}{\ncontent\n}\nalgorithms\n\\begin{algorithm}[H]\n\\KwIn{This is some input}\n\\KwOut{This is some output}\n\\SetAlgoLined\n\\SetNoFillComment\n\\tcc{This is a comment}\n\\vspace{3mm}\nsome code here;\n𝑥\n←\n0\nx←0\n;\n𝑦\n←\n0\ny←0\n;\n\\uIf{\n𝑥\n>\n5\nx>5\n} {\nx is greater than 5 \\tcp*{This is also a comment}\n}\\Else {\nx is less than or equal to 5;\n}\\ForEach{y in 0..5} {\n𝑦\n←\n𝑦\n+\n1\ny←y+1\n;\n}\\For{\n𝑦\n in \n0..5\n} {\n𝑦\n←\n𝑦\n−\n1\ny←y−1\n;\n}\\While{\n𝑥\n>\n5\nx>5\n}tvi {\n𝑥\n←\n𝑥\n−\n1\nx←x−1\n;\n}\\Return Return something here;\n\\caption{what}\n\\end{algorithm}\nthe commands are already implemented\nalso, never use ** for bold, always use enumerate/itemize\ninsert section and subsection where necessary, but ALWAYS use \section*{} and \subsection*{}\ncreate all graphs/diagrams with tikz or other packages, do not use float options such as \begin{figure}[H] EVER \n it is to be compiled without checking, so try to use as little werid formatting and extra pacakges as possible (eg dont use tdplot_main_coords)\nsince this code will be added to an existing document, return the body sections\n",
                 }, ],
             },
         ],
