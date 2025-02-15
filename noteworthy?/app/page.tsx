@@ -1,14 +1,10 @@
 "use client";
-import { Link } from "@heroui/link";
-import { Snippet } from "@heroui/snippet";
-import { Code } from "@heroui/code";
-import { button as buttonStyles } from "@heroui/theme";
 import { Button, ButtonGroup } from "@heroui/button";
-
-import { siteConfig } from "@/config/site";
-import { title, subtitle } from "@/components/primitives";
-import { GithubIcon } from "@/components/icons";
-import { useState } from "react";
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
+import { Divider } from "@heroui/divider";
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { Spacer } from "@heroui/spacer";
 
 export const CameraIcon = ({
   fill,
@@ -43,11 +39,55 @@ export const CameraIcon = ({
   );
 };
 
+export const UploadIcon = ({
+  fill,
+  size,
+  height,
+  width,
+  ...props
+}: {
+  fill?: string;
+  size?: number;
+  height?: number;
+  width?: number;
+  [key: string]: any;
+}) => {
+  fill = fill || "currentColor";
+  return (
+    <svg width="172px" height="172px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#ffffff"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path opacity="1" d="M4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"></path> <path d="M12 4L12 14M12 14L15 11M12 14L9 11" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+  );
+};
+
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl("");
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      setFile(event.dataTransfer.files[0]);
+      event.dataTransfer.clearData();
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -80,64 +120,109 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8">
-      <div className="w-full max-w-md p-6 shadow-lg rounded-lg bg-white">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-row gap-2 justify-center">
-            <Button
-              as="label"
-              color="primary"
-              className="items-center justify-center gap-2 mr-2"
-              radius="full"
-              variant="shadow"
-            >
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <span>Upload Notes</span>
-            </Button>
-            <Button
-              as="label"
-              isIconOnly
-              aria-label="Camera"
-              color="primary"
-              variant="shadow"
-              radius="full"
-            >
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <CameraIcon />
-            </Button>
-          </div>
-          <Button
-            type="submit"
-            color="secondary"
-            variant="shadow"
-            radius="full"
-            isDisabled={!file || isLoading}
-            isLoading={isLoading}
-          >
-            Convert to PDF
-          </Button>
-        </form>
-        {message && <p className="mt-4 text-center text-red-500"> {message}</p>}
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+      <Spacer y={4} />
+      {/* Left Column - Always shown */}
+      <div className="col-span-1 flex justify-center">
+        <Spacer y={4} />
+        <Card
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onDragEnter={() => setIsDragging(true)}
+          onDragLeave={() => setIsDragging(false)}
+          className="w-max-[400px] h-max-[600px]"
+        >
+          <CardHeader className="flex gap-3">
+            <h1 className="text-2xl font-extrabold text-center">
+              Convert your Handwritten Notes to PDF
+            </h1>
+          </CardHeader>
+          <Divider />
+          <CardBody>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <Card className="border-2 border-gray-200 bg-transparent shadow-none w-full">
+                <CardBody className="flex flex-row gap-2 justify-center py-8 px-4">
+                  <Button
+                    as="label"
+                    color="primary"
+                    className="items-center justify-center gap-2 mr-2"
+                    radius="full"
+                    variant="shadow"
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <span>Upload Notes</span>
+                  </Button>
+                  <Button
+                    as="label"
+                    isIconOnly
+                    aria-label="Camera"
+                    color="primary"
+                    variant="shadow"
+                    radius="full"
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <CameraIcon />
+                  </Button>
+                  <Button
+                    as="label"
+                    isIconOnly
+                    aria-label="Upload"
+                    color="primary"
+                    variant="shadow"
+                    radius="full"
+                  >
+                    <UploadIcon />
+                  </Button>
+                </CardBody>
+              </Card>
+              {previewUrl && (
+                <div className="mt-4 flex justify-center">
+                  <Image
+                    src={previewUrl}
+                    alt="File Preview"
+                    className="max-h-64 object-contain border rounded shadow-sm"
+                    width={200}
+                    height={200}
+                  />
+                </div>
+              )}
+              <Button
+                type="submit"
+                color="secondary"
+                variant="shadow"
+                radius="full"
+                isDisabled={!file || isLoading}
+                isLoading={isLoading}
+              >
+                Convert to PDF
+              </Button>
+            </form>
+          </CardBody>
+        </Card>
+        <Spacer y={4} />
       </div>
+
+      <Spacer y={4} />
+
       {pdfUrl && (
         <div className="mt-8 w-full max-w-4xl">
           <iframe
             src={pdfUrl}
             width="100%"
-            height="800"
+            height="100%"
             title="Generated PDF"
-            className="border rounded-md shadow-md"
+            className="border-0 rounded-md"
           />
         </div>
       )}

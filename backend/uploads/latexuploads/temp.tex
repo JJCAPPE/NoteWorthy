@@ -1060,53 +1060,122 @@
 
 \begin{document}
 
-\section{Systems of Linear Equations}
+\section*{Study Critiques}
 
-\subsection{Matrix Representation}
+\subsection*{Math Test Study}
 
 \nt{
-A system of linear equations can be represented in matrix form as $A\vec{x} = \vec{b}$, where:
-
 \begin{itemize}
-    \item $A$ is an $m \times n$ matrix (the coefficient matrix).
-    \item $\vec{x}$ is a column vector of variables ($x_1, x_2, ..., x_n$).
-    \item $\vec{b}$ is a column vector of constants ($v_1, v_2, ..., v_n$).
+    \item Type of study $\rightarrow$ Experimental
+    \item IV = Classical Music, DV = Math test scores
+    \item Strengths = Randomizing, eliminated the External Expectation Affect
+    \item Limitations = Preference
 \end{itemize}
-
-This can be visualized as:
-
-\[
-\begin{bmatrix}
- &  &  &  \\
- & A &  &  \\
- &  &  & \\
-\end{bmatrix}_{m \times n}
-\begin{bmatrix}
-x_1 \\
-x_2 \\
-\vdots \\
-x_n
-\end{bmatrix}
-=
-\begin{bmatrix}
-v_1 \\
-v_2 \\
-\vdots \\
-v_n
-\end{bmatrix}
-\]
-
-Which is equivalent to:
-
-\[
-A \cdot \vec{x} = \vec{b}
-\]
 }
 
-\subsection{Fundamental Questions}
+\subsection*{Neuroscience}
 
-\qs{Question 1}{Does a solution exist?}
+\begin{tikzpicture}[scale=0.8]
+    % Soma (cell body)
+    \draw[fill=gray!20] (0,0) circle (1cm);
+    \node at (0,0) {Soma};
 
-\qs{Question 2}{If a solution exists, is it unique (one solution) or are there multiple (many) solutions?}
+    % Nucleus
+    \draw[fill=gray!50] (0,0) circle (0.3cm);
+    \node[above] at (0,0.3) {Nucleus};
+
+    % Dendrites
+    \draw[thick] (0,0) -- ++(135:1.5cm);
+    \draw[thick] (0,0) -- ++(150:1.8cm);
+    \draw[thick] (0,0) -- ++(165:1.6cm);
+    \node[above left] at (150:1.8cm) {Dendrites};
+     \draw[thick] (0,0) -- ++(215:1.5cm);
+      \draw[thick] (0,0) -- ++(195:1.3cm);
+
+
+    % Axon
+    \draw[thick] (0,0) -- ++(-15:2cm);
+    \draw[thick] (-15:2cm) -- ++(0:4cm);
+      \node[below] at (1, -0.8) {Axon};
+       \node[below] at (1, -1.3) {-integration};
+
+    % Myelin Sheath
+    \draw[fill=gray!30] (2.2,-0.2) rectangle ++(0.6,0.4);
+    \draw[fill=gray!30] (3.0,-0.2) rectangle ++(0.6,0.4);
+    \draw[fill=gray!30] (3.8,-0.2) rectangle ++(0.6,0.4);
+     \node[above] at (3,0.5) {\begin{tabular}{c} Neuron \\ (insolation) \\ Myelin Sheild \end{tabular}};
+
+    % Node of Ranvier
+    \node[below] at (3.4, -0.4) {\footnotesize The};
+      \node[below] at (3.4, -0.7) {\footnotesize Node};
+        \node[below] at (3.4, -1) {\footnotesize of};
+          \node[below] at (3.4, -1.3) {\footnotesize ranvier};
+
+    % Terminal Buttons
+    \draw[thick] (6,-0.2) -- ++(15:1cm);
+    \draw[thick] (6,-0.2) -- ++(0:1.2cm);
+    \draw[thick] (6,-0.2) -- ++(-15:1cm);
+        \draw[thick] (6,0.2) -- ++(15:1cm);
+    \draw[thick] (6,0.2) -- ++(0:1.2cm);
+    \draw[thick] (6,0.2) -- ++(-15:1cm);
+    \node[right] at (7,0) {Terminal};
+     \node[right] at (7,-0.4) {Button};
+        \node[right] at (7,-1) {Terminal};
+         \node[right] at (7,-1.4) {End};
+
+\node[below] at (-1, -1.5) {Dendritic};
+\node[below] at (-1, -1.9) {end};
+\node[below] at (-1, -2.5) {-information};
+\node[below] at (-1, -2.9) {gatherer};
+\node[right] at (7, -2) {helps with};
+\node[right] at (7, -2.4) {acceleration};
+
+\end{tikzpicture}
+
+\nt{
+\textbf{Types of neurons}
+\begin{itemize}
+    \item Motor neuron
+    \item interneuron
+    \item Cencery neron
+\end{itemize}
+}
+
+\nt{
+\textbf{Myelination}
+\begin{itemize}
+    \item Newborn, have the Babinski Reflex
+    \item Happens at about 18 months
+    \item The process where your cells start to insulate cells
+\end{itemize}
+}
+
+\nt{
+\begin{itemize}
+\item Sender - pre-Synaptic
+\item Reciver - post-Synaptic
+\end{itemize}
+}
+\subsection*{Neurotransmitic Chemicals}
+\nt{
+\begin{itemize}
+    \item \textbf{Acetylcholine (Ach)}
+        \begin{itemize}
+            \item muscular function/cognative processing/memory, learning/sleep/dreaming
+        \end{itemize}
+    \item \textbf{Neropinephrine}
+        \begin{itemize}
+            \item Attention/motivation/Arasal/mood disorders
+        \end{itemize}
+    \item \textbf{Serotonine}
+        \begin{itemize}
+            \item Stablize mood/Impulse controle/dreaming
+        \end{itemize}
+          \item \textbf{Dopeamine}
+        \begin{itemize}
+            \item motivation/rewarding/volentary muscle movment
+        \end{itemize}
+\end{itemize}
+}
 
 \end{document}
