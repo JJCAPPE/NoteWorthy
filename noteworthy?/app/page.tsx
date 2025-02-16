@@ -54,7 +54,38 @@ export const UploadIcon = ({
 }) => {
   fill = fill || "currentColor";
   return (
-    <svg width="172px" height="172px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#ffffff"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path opacity="1" d="M4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"></path> <path d="M12 4L12 14M12 14L15 11M12 14L9 11" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+    <svg
+      width="172px"
+      height="172px"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      stroke="#ffffff"
+    >
+      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+      <g
+        id="SVGRepo_tracerCarrier"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      ></g>
+      <g id="SVGRepo_iconCarrier">
+        {" "}
+        <path
+          opacity="1"
+          d="M4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12"
+          stroke="#ffffff"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        ></path>{" "}
+        <path
+          d="M12 4L12 14M12 14L15 11M12 14L9 11"
+          stroke="#ffffff"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>{" "}
+      </g>
+    </svg>
   );
 };
 
@@ -120,17 +151,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+    <div className="bg-gray-50 flex flex-col items-center justify-center">
       <Spacer y={4} />
       {/* Left Column - Always shown */}
-      <div className="col-span-1 flex justify-center">
+      <div className="flex justify-center">
         <Spacer y={4} />
         <Card
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onDragEnter={() => setIsDragging(true)}
           onDragLeave={() => setIsDragging(false)}
-          className="w-max-[400px] h-max-[600px]"
+          className="w-full max-w-[1000px]"
         >
           <CardHeader className="flex gap-3">
             <h1 className="text-2xl font-extrabold text-center">
@@ -192,8 +223,8 @@ export default function Home() {
                     src={previewUrl}
                     alt="File Preview"
                     className="max-h-64 object-contain border rounded shadow-sm"
-                    width={200}
-                    height={200}
+                    width={100}
+                    height={100}
                   />
                 </div>
               )}
@@ -216,13 +247,14 @@ export default function Home() {
       <Spacer y={4} />
 
       {pdfUrl && (
-        <div className="mt-8 w-full max-w-4xl">
+        <div
+          className="w-full max-w-2xl overflow-auto"
+          style={{ height: "calc(100vh - 200px)" }} // or a large fixed height if you prefer
+        >
           <iframe
             src={pdfUrl}
-            width="100%"
-            height="100%"
+            className="w-full h-full border-0 rounded-md"
             title="Generated PDF"
-            className="border-0 rounded-md"
           />
         </div>
       )}
