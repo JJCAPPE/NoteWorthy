@@ -61,53 +61,52 @@ export const UploadIcon = ({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       stroke="#ffffff"
+      {...props}
     >
-      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
       <g
         id="SVGRepo_tracerCarrier"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       ></g>
       <g id="SVGRepo_iconCarrier">
-        {" "}
         <path
           opacity="1"
           d="M4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12"
           stroke="#ffffff"
-          stroke-width="1.5"
-          stroke-linecap="round"
-        ></path>{" "}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        ></path>
         <path
           d="M12 4L12 14M12 14L15 11M12 14L9 11"
           stroke="#ffffff"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        ></path>{" "}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        ></path>
       </g>
     </svg>
   );
 };
 
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState("");
   const [processType, setProcessType] = useState("base");
 
-
   useEffect(() => {
-    if (!file) {
-      setPreviewUrl("");
+    if (files.length === 0) {
+      setPreviewUrls([]);
       return;
     }
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
+    const urls = files.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [files]);
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -117,23 +116,23 @@ export default function Home() {
     event.preventDefault();
     setIsDragging(false);
     if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-      setFile(event.dataTransfer.files[0]);
+      setFiles(Array.from(event.dataTransfer.files));
       event.dataTransfer.clearData();
     }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
-      setFile(event.target.files[0]);
+      setFiles(Array.from(event.target.files));
     }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!file) return;
+    if (files.length === 0) return;
     setIsLoading(true);
     const formData = new FormData();
-    formData.append("noteImage", file);
+    files.forEach((file) => formData.append("noteImage", file));
     formData.append("processType", processType);
 
     try {
@@ -146,8 +145,8 @@ export default function Home() {
       setPdfUrl(url);
       setMessage("PDF generated and displayed below.");
     } catch (error) {
-      console.error("Error uploading file:", error);
-      setMessage("Error uploading file");
+      console.error("Error uploading files:", error);
+      setMessage("Error uploading files");
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +155,6 @@ export default function Home() {
   return (
     <div className="bg-gray-50 flex flex-col items-center justify-center">
       <Spacer y={4} />
-      {/* Left Column - Always shown */}
       <div className="flex justify-center">
         <Spacer y={4} />
         <Card
@@ -186,6 +184,7 @@ export default function Home() {
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={handleFileChange}
                       className="hidden"
                     />
@@ -203,6 +202,7 @@ export default function Home() {
                       type="file"
                       accept="image/*"
                       capture="environment"
+                      multiple
                       onChange={handleFileChange}
                       className="hidden"
                     />
@@ -210,15 +210,18 @@ export default function Home() {
                   </Button>
                 </CardBody>
               </Card>
-              {previewUrl && (
-                <div className="mt-4 flex justify-center">
-                  <Image
-                    src={previewUrl}
-                    alt="File Preview"
-                    className="max-h-64 object-contain border rounded shadow-sm"
-                    width={100}
-                    height={100}
-                  />
+              {previewUrls.length > 0 && (
+                <div className="mt-4 flex flex-wrap justify-center gap-4">
+                  {previewUrls.map((url, index) => (
+                    <Image
+                      key={index}
+                      src={url}
+                      alt={`Preview ${index}`}
+                      className="max-h-64 object-contain border rounded shadow-sm"
+                      width={100}
+                      height={Math.min(100, (url.match(/.*\.(.*)/) || [])[1] === 'gif' ? 200 : 300)}
+                    />
+                  ))}
                 </div>
               )}
               <div className="w-full flex justify-center">
@@ -237,7 +240,7 @@ export default function Home() {
                 color="secondary"
                 variant="shadow"
                 radius="full"
-                isDisabled={!file || isLoading}
+                isDisabled={files.length === 0 || isLoading}
                 isLoading={isLoading}
               >
                 Convert to PDF
@@ -249,11 +252,10 @@ export default function Home() {
       </div>
 
       <Spacer y={4} />
-
       {pdfUrl && (
         <div
           className="w-full max-w-2xl overflow-auto"
-          style={{ height: "calc(100vh - 200px)" }} // or a large fixed height if you prefer
+          style={{ height: "calc(100vh - 200px)" }}
         >
           <iframe
             src={pdfUrl}
