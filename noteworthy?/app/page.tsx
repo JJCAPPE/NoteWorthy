@@ -5,7 +5,7 @@ import { Divider } from "@heroui/divider";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Spacer } from "@heroui/spacer";
-
+import { Tabs, Tab } from "@heroui/tabs";
 export const CameraIcon = ({
   fill,
   size,
@@ -96,6 +96,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [processType, setProcessType] = useState("base");
+
 
   useEffect(() => {
     if (!file) {
@@ -132,6 +134,7 @@ export default function Home() {
     setIsLoading(true);
     const formData = new FormData();
     formData.append("noteImage", file);
+    formData.append("processType", processType);
 
     try {
       const response = await fetch("http://localhost:3001/upload", {
@@ -205,16 +208,6 @@ export default function Home() {
                     />
                     <CameraIcon />
                   </Button>
-                  <Button
-                    as="label"
-                    isIconOnly
-                    aria-label="Upload"
-                    color="primary"
-                    variant="shadow"
-                    radius="full"
-                  >
-                    <UploadIcon />
-                  </Button>
                 </CardBody>
               </Card>
               {previewUrl && (
@@ -228,6 +221,17 @@ export default function Home() {
                   />
                 </div>
               )}
+              <div className="w-full flex justify-center">
+                <Tabs
+                  selectedKey={processType}
+                  onSelectionChange={(key) => setProcessType(key as string)}
+                  color="warning"
+                >
+                  <Tab title="Summary" key="summary" />
+                  <Tab title="Base" key="base" />
+                  <Tab title="Expansion" key="expansion" />
+                </Tabs>
+              </div>
               <Button
                 type="submit"
                 color="secondary"

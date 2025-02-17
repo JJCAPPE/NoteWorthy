@@ -21,7 +21,6 @@ const fileManager = new GoogleAIFileManager(apiKey);
  * See https://ai.google.dev/gemini-api/docs/prompting_with_media
  */
 async function uploadToGemini(filePath, mimeType) {
-
     const uploadResult = await fileManager.uploadFile(filePath, {
         mimeType,
         displayName: filePath,
@@ -43,8 +42,35 @@ const generationConfig = {
     responseMimeType: "text/plain",
 };
 
-async function run(filePath = "uploads/handwritten_note.jpeg") {
+async function run(
+    filePath = "uploads/handwritten_note.jpeg",
+    processType = "base"
+) {
     const files = [await uploadToGemini(filePath, "image/jpeg")];
+
+    let transcriptionText = "";
+    if (processType === "summary") {
+        transcriptionText =
+            "make a summarised, revision sheet like transcription of these notes that is extremely concise and has only core concepts";
+    } else if (processType === "expansion") {
+        transcriptionText =
+            "expand on all the details in the given notes in order for the user to be able to deeply study this content from the output";
+    } else {
+        transcriptionText =
+            "make a full and extended transcription of these notes on linear combinations, including a description of all graphs/diagrams that are present";
+    }
+
+    let promtText = "";
+    if (processType === "summary") {
+        promtText =
+            "make a summarised, revision sheet like latex of these notes that is extremely concise and has only core concepts and definitions";
+    } else if (processType === "expansion") {
+        promtText =
+            "expand on all the details in the given notes in order for the user to be able to deeply study this content from the output , including all graphs/diagrams that are present and extra ones you deem necessary";
+    } else {
+        promtText =
+            "make a full transcription of these notes on linear combinations, including all graphs/diagrams that are present";
+    } 
 
     const chatSession = model.startChat({
         generationConfig,
@@ -57,7 +83,7 @@ async function run(filePath = "uploads/handwritten_note.jpeg") {
                         },
                     },
                     {
-                        text: "make a full and extended transcription of these notes on linear combinations, including a description of all graphs/diagrams that are present",
+                        text: transcriptionText,
                     },
                 ],
             },
@@ -72,13 +98,12 @@ async function run(filePath = "uploads/handwritten_note.jpeg") {
             {
                 role: "user",
                 parts: [{
-                    text: "now, take these notes and convert them to a latex code to be added to an existing latex document.\nuse this formatting\nfor definitions\n\\dfn{Definiton Title}{\ncontent\n}\nfor notes\n\\nt{\ncontent\n}\nfor theorems\n\\thm{theorem title}{\ncontent\n}\nquestion and answer\n\\qs{Question title}{\nquestion content\n}\n\\sol\nsolution\nexamples\n\\ex{Question or example title}{\ncontent\n}\nalgorithms\n\\begin{algorithm}[H]\n\\KwIn{This is some input}\n\\KwOut{This is some output}\n\\SetAlgoLined\n\\SetNoFillComment\n\\tcc{This is a comment}\n\\vspace{3mm}\nsome code here;\n𝑥\n←\n0\nx←0\n;\n𝑦\n←\n0\ny←0\n;\n\\uIf{\n𝑥\n>\n5\nx>5\n} {\nx is greater than 5 \\tcp*{This is also a comment}\n}\\Else {\nx is less than or equal to 5;\n}\\ForEach{y in 0..5} {\n𝑦\n←\n𝑦\n+\n1\ny←y+1\n;\n}\\For{\n𝑦\n in \n0..5\n} {\n𝑦\n←\n𝑦\n−\n1\ny←y−1\n;\n}\\While{\n𝑥\n>\n5\nx>5\n}tvi {\n𝑥\n←\n𝑥\n−\n1\nx←x−1\n;\n}\\Return Return something here;\n\\caption{what}\n\\end{algorithm}\nthe commands are already implemented\nalso, never use ** for bold, always use enumerate/itemize\ninsert section and subsection where necessary, but ALWAYS use \section*{} and \subsection*{}\ncreate all graphs/diagrams with tikz or other packages, do not use float options such as \begin{figure}[H] EVER \n it is to be compiled without checking, so try to use as little werid formatting and extra pacakges as possible (eg dont use tdplot_main_coords)\nsince this code will be added to an existing document, return the body sections\n",
+                    text: "now, take these notes and convert them to a latex code to be added to an existing latex document " + promtText +".\n use this formatting \nfor definitions\n\\dfn{Definiton Title}{\ncontent\n}\nfor notes\n\\nt{\ncontent\n}\nfor theorems\n\\thm{theorem title}{\ncontent\n}\nquestion and answer\n\\qs{Question title}{\nquestion content\n}\n\\sol\nsolution\nexamples\n\\ex{Question or example title}{\ncontent\n}\nalgorithms\n\\begin{algorithm}[H]\n\\KwIn{This is some input}\n\\KwOut{This is some output}\n\\SetAlgoLined\n\\SetNoFillComment\n\\tcc{This is a comment}\n\\vspace{3mm}\nsome code here;\n𝑥\n←\n0\nx←0\n;\n𝑦\n←\n0\ny←0\n;\n\\uIf{\n𝑥\n>\n5\nx>5\n} {\nx is greater than 5 \\tcp*{This is also a comment}\n}\\Else {\nx is less than or equal to 5;\n}\\ForEach{y in 0..5} {\n𝑦\n←\n𝑦\n+\n1\ny←y+1\n;\n}\\For{\n𝑦\n in \n0..5\n} {\n𝑦\n←\n𝑦\n−\n1\ny←y−1\n;\n}\\While{\n𝑥\n>\n5\nx>5\n}tvi {\n𝑥\n←\n𝑥\n−\n1\nx←x−1\n;\n}\\Return Return something here;\n\\caption{what}\n\\end{algorithm}\nthe commands are already implemented\nalso, never use ** for bold, always use enumerate/itemize\ninsert section and subsection where necessary, but ALWAYS use section*{} and subsection*{}\ncreate all graphs/diagrams with tikz or other packages, do not use float options such as \begin{figure}[H] EVER \n it is to be compiled without checking, so try to use as little werid formatting and extra pacakges as possible (eg dont use tdplot_main_coords)\nsince this code will be added to an existing document, return the body sections\n",
                 }, ],
             },
         ],
     });
 
-    // Use streaming API to get text as it comes in
     const streamResult = await chatSession.sendMessageStream(
         "Proceed with conversion"
     );
@@ -88,7 +113,6 @@ async function run(filePath = "uploads/handwritten_note.jpeg") {
         process.stdout.write(chunkText);
         accumulatedOutput += chunkText;
     }
-
     return accumulatedOutput;
 }
 
