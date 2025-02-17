@@ -39,56 +39,6 @@ export const CameraIcon = ({
   );
 };
 
-export const UploadIcon = ({
-  fill,
-  size,
-  height,
-  width,
-  ...props
-}: {
-  fill?: string;
-  size?: number;
-  height?: number;
-  width?: number;
-  [key: string]: any;
-}) => {
-  fill = fill || "currentColor";
-  return (
-    <svg
-      width="172px"
-      height="172px"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      stroke="#ffffff"
-      {...props}
-    >
-      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-      <g
-        id="SVGRepo_tracerCarrier"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      ></g>
-      <g id="SVGRepo_iconCarrier">
-        <path
-          opacity="1"
-          d="M4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12"
-          stroke="#ffffff"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        ></path>
-        <path
-          d="M12 4L12 14M12 14L15 11M12 14L9 11"
-          stroke="#ffffff"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        ></path>
-      </g>
-    </svg>
-  );
-};
-
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
