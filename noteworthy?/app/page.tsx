@@ -6,6 +6,11 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Spacer } from "@heroui/spacer";
 import { Tabs, Tab } from "@heroui/tabs";
+import dotenv from "dotenv";
+
+dotenv.config();
+const apiBase = "http://localhost:3001";
+
 export const CameraIcon = ({
   fill,
   size,
@@ -86,7 +91,7 @@ export default function Home() {
     formData.append("processType", processType);
 
     try {
-      const response = await fetch("http://localhost:3001/upload", {
+      const response = await fetch(`${apiBase}/upload`, {
         method: "POST",
         body: formData,
       });

@@ -2,8 +2,40 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const cors = require("cors");
+const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Function to clear files from directories
+function clearUploads() {
+  const directories = [
+    path.join(__dirname, "uploads", "images"),
+    path.join(__dirname, "uploads", "latexuploads"),
+  ];
+
+  directories.forEach((dir) => {
+    try {
+      if (!fs.existsSync(dir)) {
+        console.log(`Directory ${dir} does not exist.`);
+        return;
+      }
+      const files = fs.readdirSync(dir);
+      files.forEach((file) => {
+        const filePath = path.join(dir, file);
+        fs.unlinkSync(filePath);
+        console.log(`Deleted file: ${filePath}`);
+      });
+    } catch (error) {
+      console.error(`Error clearing directory ${dir}:`, error);
+    }
+  });
+}
+
+app.get("/clear", ((req, res) => {
+    console.log("Clearing uploads on every request...");
+    clearUploads();
+    res.sendStatus(200);
+  }));
 // Change from single to multiple file uploads; adjust maxCount as needed
 const upload = multer({ dest: "uploads/images/" });
 
@@ -44,7 +76,6 @@ app.post("/upload", upload.array("noteImage", 10), async (req, res) => {
     cleanedLatex = cleanedLatex.replace(/, tdplot_main_coords/g, "");
 
     // Read the template file that contains the header and footer with a <content> placeholder
-    const fs = require("fs");
     const templatePath = path.join(__dirname, "templates", "main.txt");
     fs.readFile(templatePath, "utf8", (err, template) => {
       if (err) {
@@ -59,7 +90,7 @@ app.post("/upload", upload.array("noteImage", 10), async (req, res) => {
 
       // Import the LaTeX compiler
       const { compileLatex } = require("./latexCompiler");
-      // Compile the final LaTeX code into a PDF; output will be in the "uploads" directory
+      // Compile the final LaTeX code into a PDF; output will be in the "uploads/latexuploads" directory
       compileLatex(finalLatex, "uploads/latexuploads", (err, pdfPath) => {
         if (err) {
           console.error("LaTeX compilation error:", err);

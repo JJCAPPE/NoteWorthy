@@ -1,10 +1,13 @@
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const { v4: uuidv4 } = require("uuid");
 
 function compileLatex(latexCode, outputDir, callback) {
-  // Write the LaTeX code to a temporary .tex file
-  const tempTexPath = path.join(outputDir, "temp.tex");
+  // Generate a unique ID for all temporary files
+  const uniqueId = uuidv4();
+  const tempTexPath = path.join(outputDir, `${uniqueId}.tex`);
+
   fs.writeFile(tempTexPath, latexCode, (err) => {
     if (err) {
       return callback(err);
@@ -18,7 +21,7 @@ function compileLatex(latexCode, outputDir, callback) {
           console.error("STDOUT:\n", stdout);
           console.error("STDERR:\n", stderr);
           // Attempt to read the log file for more details
-          const logPath = path.join(outputDir, "temp.log");
+          const logPath = path.join(outputDir, `${uniqueId}.log`);
           fs.readFile(logPath, "utf8", (readErr, logContent) => {
             if (!readErr) {
               console.error("LaTeX log file contents:\n", logContent);
@@ -28,8 +31,8 @@ function compileLatex(latexCode, outputDir, callback) {
             return callback(error);
           });
         }
-        // Assuming the output PDF is named temp.pdf
-        const pdfPath = path.join(outputDir, "temp.pdf");
+        // Assuming the output PDF is named with the same base as the tex file
+        const pdfPath = path.join(outputDir, `${uniqueId}.pdf`);
         callback(null, pdfPath);
       }
     );
