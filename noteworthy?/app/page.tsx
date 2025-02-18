@@ -110,7 +110,7 @@ export default function Home() {
     formData.append("processType", processType);
 
     try {
-      const response = await fetch(`${apiBase}/upload`, {
+      const response = await fetch(`/api/upload`, {
         method: "POST",
         body: formData,
       });
