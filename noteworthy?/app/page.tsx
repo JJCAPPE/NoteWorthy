@@ -6,10 +6,29 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Spacer } from "@heroui/spacer";
 import { Tabs, Tab } from "@heroui/tabs";
+import { Tooltip } from "@heroui/tooltip";
 import dotenv from "dotenv";
 
 dotenv.config();
 const apiBase = "http://localhost:3001";
+
+const tabOptions = [
+  {
+    key: "summary",
+    label: "Summary",
+    tooltipContent: "Makes a concise revision sheet like transcription",
+  },
+  {
+    key: "base",
+    label: "Base",
+    tooltipContent: "Makes a full transcription, including diagrams",
+  },
+  {
+    key: "expansion",
+    label: "Expansion",
+    tooltipContent: "Makes extended study notes for each concept",
+  },
+];
 
 export const CameraIcon = ({
   fill,
@@ -174,7 +193,10 @@ export default function Home() {
                       alt={`Preview ${index}`}
                       className="max-h-64 object-contain border rounded shadow-sm"
                       width={100}
-                      height={Math.min(100, (url.match(/.*\.(.*)/) || [])[1] === 'gif' ? 200 : 300)}
+                      height={Math.min(
+                        100,
+                        (url.match(/.*\.(.*)/) || [])[1] === "gif" ? 200 : 300
+                      )}
                     />
                   ))}
                 </div>
@@ -185,9 +207,22 @@ export default function Home() {
                   onSelectionChange={(key) => setProcessType(key as string)}
                   color="warning"
                 >
-                  <Tab title="Summary" key="summary" />
-                  <Tab title="Base" key="base" />
-                  <Tab title="Expansion" key="expansion" />
+                  {tabOptions.map((tab) => (
+                    <Tab
+                      key={tab.key}
+                      title={
+                        <Tooltip
+                          content={tab.tooltipContent}
+                          placement="top"
+                          color={
+                            processType === tab.key ? "warning" : undefined
+                          }
+                        >
+                          <span>{tab.label}</span>
+                        </Tooltip>
+                      }
+                    />
+                  ))}
                 </Tabs>
               </div>
               <Button
