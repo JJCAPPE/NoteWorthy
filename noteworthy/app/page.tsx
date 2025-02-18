@@ -151,7 +151,7 @@ export default function Home() {
                   <Button
                     as="label"
                     color="primary"
-                    className="items-center justify-center gap-2 mr-2"
+                    className="relative cursor-pointer items-center justify-center gap-2 mr-2"
                     radius="full"
                     variant="shadow"
                   >
@@ -160,7 +160,15 @@ export default function Home() {
                       accept="image/*"
                       multiple
                       onChange={handleFileChange}
-                      className="hidden"
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: 0,
+                        width: "100%",
+                        height: "100%",
+                        opacity: 0,
+                        pointerEvents: "auto",
+                      }}
                     />
                     <span>Upload Notes</span>
                   </Button>
@@ -171,14 +179,22 @@ export default function Home() {
                     color="primary"
                     variant="shadow"
                     radius="full"
+                    className="relative cursor-pointer"
                   >
                     <input
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      multiple
                       onChange={handleFileChange}
-                      className="hidden"
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: 0,
+                        width: "100%",
+                        height: "100%",
+                        opacity: 0,
+                        pointerEvents: "auto",
+                      }}
                     />
                     <CameraIcon />
                   </Button>
@@ -249,7 +265,7 @@ export default function Home() {
         >
           <iframe
             src={pdfUrl}
-            className="w-full h-full border-0 rounded-md"
+            className="w-full h-[80vh] border-0 rounded-md"
             title="Generated PDF"
           />
         </div>

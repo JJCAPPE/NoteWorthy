@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { promises as fsPromises } from "fs";
-import { IncomingForm } from "formidable";
+import os from "os";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const uploadDir = path.join(process.cwd(), "uploads", "temp");
+  const uploadDir = path.join(os.tmpdir(), "uploads", "temp");
   
   try {
     // Ensure upload directory exists
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const finalLatex = template.replace("<content>", cleanedLatex);
 
     const { compileLatex } = await import("./latexCompiler");
-    const outputDir = path.join(process.cwd(), "uploads", "latexuploads");
+    const outputDir = path.join(os.tmpdir(), "uploads", "latexuploads");
     await fsPromises.mkdir(outputDir, { recursive: true });
 
     const pdfBuffer: Buffer = await new Promise((resolve, reject) => {
