@@ -30,7 +30,7 @@ const tabOptions = [
   },
 ];
 
-export const CameraIcon = ({
+const CameraIcon = ({
   fill,
   size,
   height,
