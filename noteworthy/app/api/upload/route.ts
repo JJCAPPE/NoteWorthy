@@ -66,8 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Call the Cloud Run endpoint for LaTeX compilation
     const cloudRunUrl =
-      "https://latex-service-7822565772.us-central1.run.app";
-
+      "https://latex-service-7822565772.us-central1.run.app/compile";
     const response = await fetch(cloudRunUrl, {
       method: "POST",
       headers: {
