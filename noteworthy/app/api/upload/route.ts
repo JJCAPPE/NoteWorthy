@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   const uploadDir = path.join(os.tmpdir(), "uploads", "temp");
-  
+
   try {
     // Ensure upload directory exists
     await fsPromises.mkdir(uploadDir, { recursive: true });
@@ -32,9 +32,24 @@ export async function POST(request: NextRequest) {
     const { run: runGemini } = await import("./geminiIntegration");
     const latexCode: string = await runGemini(filePaths, processType);
 
-    // Clean LaTeX code (same as before)
     let cleanedLatex = latexCode.trim();
-    // ... (rest of your cleaning logic)
+
+    if (cleanedLatex.startsWith("```latex")) {
+      cleanedLatex = cleanedLatex.substring("```latex".length).trim();
+    }
+    if (cleanedLatex.endsWith("```")) {
+      cleanedLatex = cleanedLatex.substring(0, cleanedLatex.length - 3).trim();
+    }
+    // If the cleaned LaTeX contains a \begin{document}, remove it and everything before
+    const documentStart = "\\begin{document}";
+    const docIndex = cleanedLatex.indexOf(documentStart);
+    if (docIndex !== -1) {
+      cleanedLatex = cleanedLatex
+        .substring(docIndex + documentStart.length)
+        .trim();
+    }
+    // Remove any instances of ", tdplot_main_coords"
+    cleanedLatex = cleanedLatex.replace(/, tdplot_main_coords/g, "");
 
     const templatePath = path.join(
       process.cwd(),
@@ -47,19 +62,38 @@ export async function POST(request: NextRequest) {
     const template = await fsPromises.readFile(templatePath, "utf8");
     const finalLatex = template.replace("<content>", cleanedLatex);
 
-    const { compileLatex } = await import("./latexCompiler");
-    const outputDir = path.join(os.tmpdir(), "uploads", "latexuploads");
-    await fsPromises.mkdir(outputDir, { recursive: true });
+    const jsonFriendly = JSON.stringify({ latex: finalLatex });
 
-    const pdfBuffer: Buffer = await new Promise((resolve, reject) => {
-      compileLatex(finalLatex, outputDir, (err: any, pdfPath: string) => {
-        if (err) return reject(err);
-        fsPromises.readFile(pdfPath).then(resolve).catch(reject);
-      });
+    // Call the Cloud Run endpoint for LaTeX compilation
+    const cloudRunUrl =
+      "https://latex-service-7822565772.us-central1.run.app";
+
+    const response = await fetch(cloudRunUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: jsonFriendly,
     });
 
+    // Enhanced error handling: Try to read error details if response is not OK.
+    if (!response.ok) {
+      let errorDetails = "";
+      try {
+        errorDetails = await response.text();
+      } catch (e) {
+        errorDetails = `Unable to parse error details.`;
+      }
+      throw new Error(
+        `LaTeX compilation failed with status ${response.status}: ${errorDetails}`
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const pdfBuffer = Buffer.from(arrayBuffer);
+
     // Cleanup temporary files
-    await Promise.all(filePaths.map(filePath => fsPromises.unlink(filePath)));
+    await Promise.all(filePaths.map((filePath) => fsPromises.unlink(filePath)));
 
     return new NextResponse(pdfBuffer, {
       headers: {
@@ -69,13 +103,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error processing request:", error);
-    // Cleanup files on error
-    const files = await fsPromises.readdir(uploadDir);
-    await Promise.all(files.map(file =>
-      fsPromises.unlink(path.join(uploadDir, file))
-    ));
+
+    // Cleanup files on error, if possible
+    try {
+      const files = await fsPromises.readdir(uploadDir);
+      await Promise.all(
+        files.map((file) => fsPromises.unlink(path.join(uploadDir, file)))
+      );
+    } catch (cleanupError) {
+      console.error("Error cleaning up files:", cleanupError);
+    }
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
