@@ -2,6 +2,8 @@ import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import { Link } from "@heroui/link";
 import clsx from "clsx";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { Providers } from "./providers";
 
@@ -46,6 +48,8 @@ export default function RootLayout({
             <Navbar />
             <main className="container mx-auto py-4 flex-grow">
               {children}
+              <Analytics />
+              <SpeedInsights />
             </main>
             <footer className="w-full flex items-center justify-center py-3">
               <Link
