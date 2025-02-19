@@ -127,7 +127,7 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-gray-50 flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-start min-h-screen">
       <Spacer y={4} />
       <div className="flex justify-center">
         <Spacer y={4} />
@@ -259,13 +259,10 @@ export default function Home() {
 
       <Spacer y={4} />
       {pdfUrl && (
-        <div
-          className="w-full max-w-2xl overflow-auto"
-          style={{ height: "calc(100vh - 200px)" }}
-        >
+        <div className="w-full max-w-[1000px] min-h-screen overflow-auto">
           <iframe
             src={pdfUrl}
-            className="w-full h-[80vh] border-0 rounded-md"
+            className="h-full w-full border-0 rounded-md"
             title="Generated PDF"
           />
         </div>
