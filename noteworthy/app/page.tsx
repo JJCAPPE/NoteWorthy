@@ -8,9 +8,9 @@ import { Spacer } from "@heroui/spacer";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Tooltip } from "@heroui/tooltip";
 import dotenv from "dotenv";
+import { ListRestart } from "lucide-react";
 
 dotenv.config();
-const apiBase = "http://localhost:3001";
 
 const tabOptions = [
   {
@@ -63,11 +63,18 @@ const CameraIcon = ({
   );
 };
 
+interface PdfMetadata {
+  sourceFiles: string[]; // File names of source images
+  processType: string; // Type of processing used
+  timestamp: number; // When the PDF was generated
+}
+
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfMetadata, setPdfMetadata] = useState<PdfMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [processType, setProcessType] = useState("base");
@@ -117,153 +124,193 @@ export default function Home() {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
+      setPdfMetadata({
+        sourceFiles: files.map((f) => f.name),
+        processType: processType,
+        timestamp: Date.now(),
+      });
       setMessage("PDF generated and displayed below.");
     } catch (error) {
       console.error("Error uploading files:", error);
       setMessage("Error uploading files");
+      setPdfMetadata(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen">
+    <div
+      className={`flex ${pdfUrl ? "flex-row" : "flex-col"} items-center justify-start min-h-screen w-[90vw] mx-auto`}
+    >
       <Spacer y={4} />
-      <div className="flex justify-center">
+      <div className="container flex flex-col justify-center mx-auto px-4">
         <Spacer y={4} />
-        <Card
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onDragEnter={() => setIsDragging(true)}
-          onDragLeave={() => setIsDragging(false)}
-          className="w-full max-w-[1000px]"
-        >
-          <CardHeader className="flex gap-3">
-            <h1 className="text-2xl font-extrabold text-center">
-              Convert your Handwritten Notes to PDF
-            </h1>
-          </CardHeader>
-          <Divider />
-          <CardBody>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <Card className="border-2 border-gray-200 bg-transparent shadow-none w-full">
-                <CardBody className="flex flex-row gap-2 justify-center py-8 px-4">
-                  <Button
-                    as="label"
-                    color="primary"
-                    className="relative cursor-pointer items-center justify-center gap-2 mr-2"
-                    radius="full"
-                    variant="shadow"
+        <Tooltip showArrow defaultOpen color="success" content="Rotate Horizonaly for Better Viewing">
+          <Card
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onDragEnter={() => setIsDragging(true)}
+            onDragLeave={() => setIsDragging(false)}
+            className="w-full max-w-[1000px]"
+          >
+            <CardHeader className="flex gap-3">
+              <h1 className="text-2xl font-extrabold text-center">
+                Convert your Handwritten Notes to PDF
+              </h1>
+            </CardHeader>
+            <Divider />
+            <CardBody>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <Card className="border-2 border-gray-200 bg-transparent shadow-none w-full">
+                  <CardBody className="flex flex-row gap-2 justify-center py-8 px-4">
+                    <Button
+                      as="label"
+                      color="primary"
+                      className="relative cursor-pointer items-center justify-center gap-2 mr-2"
+                      radius="full"
+                      variant="shadow"
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileChange}
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          width: "100%",
+                          height: "100%",
+                          opacity: 0,
+                          pointerEvents: "auto",
+                        }}
+                      />
+                      <span>Upload Notes</span>
+                    </Button>
+                    <Button
+                      as="label"
+                      isIconOnly
+                      aria-label="Camera"
+                      color="primary"
+                      variant="shadow"
+                      radius="full"
+                      className="relative cursor-pointer"
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileChange}
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          width: "100%",
+                          height: "100%",
+                          opacity: 0,
+                          pointerEvents: "auto",
+                        }}
+                      />
+                      <CameraIcon />
+                    </Button>
+                  </CardBody>
+                </Card>
+                {previewUrls.length > 0 && (
+                  <div className="mt-4 flex flex-wrap justify-center gap-4">
+                    {previewUrls.map((url, index) => (
+                      <Image
+                        key={index}
+                        src={url}
+                        alt={`Preview ${index}`}
+                        className="max-h-64 object-contain border rounded shadow-sm"
+                        width={100}
+                        height={Math.min(
+                          100,
+                          (url.match(/.*\.(.*)/) || [])[1] === "gif" ? 200 : 300
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+                <div className="w-full flex justify-center">
+                  <Tabs
+                    selectedKey={processType}
+                    onSelectionChange={(key) => setProcessType(key as string)}
+                    color="warning"
                   >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileChange}
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        top: 0,
-                        width: "100%",
-                        height: "100%",
-                        opacity: 0,
-                        pointerEvents: "auto",
-                      }}
-                    />
-                    <span>Upload Notes</span>
-                  </Button>
-                  <Button
-                    as="label"
-                    isIconOnly
-                    aria-label="Camera"
-                    color="primary"
-                    variant="shadow"
-                    radius="full"
-                    className="relative cursor-pointer"
-                  >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleFileChange}
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        top: 0,
-                        width: "100%",
-                        height: "100%",
-                        opacity: 0,
-                        pointerEvents: "auto",
-                      }}
-                    />
-                    <CameraIcon />
-                  </Button>
-                </CardBody>
-              </Card>
-              {previewUrls.length > 0 && (
-                <div className="mt-4 flex flex-wrap justify-center gap-4">
-                  {previewUrls.map((url, index) => (
-                    <Image
-                      key={index}
-                      src={url}
-                      alt={`Preview ${index}`}
-                      className="max-h-64 object-contain border rounded shadow-sm"
-                      width={100}
-                      height={Math.min(
-                        100,
-                        (url.match(/.*\.(.*)/) || [])[1] === "gif" ? 200 : 300
-                      )}
-                    />
-                  ))}
+                    {tabOptions.map((tab) => (
+                      <Tab
+                        key={tab.key}
+                        title={
+                          <Tooltip
+                            content={tab.tooltipContent}
+                            placement="top"
+                            color={
+                              processType === tab.key ? "warning" : undefined
+                            }
+                          >
+                            <span>{tab.label}</span>
+                          </Tooltip>
+                        }
+                      />
+                    ))}
+                  </Tabs>
                 </div>
-              )}
-              <div className="w-full flex justify-center">
-                <Tabs
-                  selectedKey={processType}
-                  onSelectionChange={(key) => setProcessType(key as string)}
-                  color="warning"
-                >
-                  {tabOptions.map((tab) => (
-                    <Tab
-                      key={tab.key}
-                      title={
-                        <Tooltip
-                          content={tab.tooltipContent}
-                          placement="top"
-                          color={
-                            processType === tab.key ? "warning" : undefined
-                          }
-                        >
-                          <span>{tab.label}</span>
-                        </Tooltip>
-                      }
-                    />
-                  ))}
-                </Tabs>
-              </div>
-              <Button
-                type="submit"
-                color="secondary"
-                variant="shadow"
-                radius="full"
-                isDisabled={files.length === 0 || isLoading}
-                isLoading={isLoading}
-              >
-                Convert to PDF
-              </Button>
-            </form>
-          </CardBody>
-        </Card>
+                <div className="flex flex-row gap-4 justify-center">
+                  <Button
+                    className="w-full max-w-md"
+                    type="submit"
+                    color="secondary"
+                    variant="shadow"
+                    radius="full"
+                    isDisabled={
+                      files.length === 0 ||
+                      isLoading ||
+                      Boolean(
+                        pdfMetadata &&
+                          pdfMetadata.processType === processType &&
+                          pdfMetadata.sourceFiles.length === files.length &&
+                          pdfMetadata.sourceFiles.every(
+                            (name, i) => files[i].name === name
+                          )
+                      )
+                    }
+                    isLoading={isLoading}
+                  >
+                    Convert to PDF
+                  </Button>
+                  <Button
+                    color="danger"
+                    variant="shadow"
+                    radius="full"
+                    onPress={() => {
+                      setPdfUrl("");
+                      setPdfMetadata(null);
+                      setFiles([]);
+                      setProcessType("base");
+                    }}
+                    isDisabled={files.length === 0 || isLoading}
+                  >
+                    <ListRestart size={25} />
+                  </Button>
+                </div>
+              </form>
+            </CardBody>
+          </Card>
+        </Tooltip>
         <Spacer y={4} />
       </div>
 
       <Spacer y={4} />
       {pdfUrl && (
-        <div className="w-full max-w-[1000px] min-h-screen overflow-auto">
+        <div className="mt-8 w-full max-w-4xl">
           <iframe
             src={pdfUrl}
-            className="h-full w-full border-0 rounded-md"
+            width="100%"
+            height="800"
             title="Generated PDF"
+            className="border rounded-md shadow-md"
           />
         </div>
       )}
