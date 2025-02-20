@@ -1,24 +1,31 @@
 import * as React from "react";
 
 import { IconSvgProps } from "@/types";
+import { BookHeart } from "lucide-react";
 
-export const Logo: React.FC<IconSvgProps> = ({
-  size = 36,
+export const Logo: React.FC<IconSvgProps> = ({ size = 36, width, height, ...props }) => (
+  <BookHeart
+    style={{
+      width: size || width,
+      height: size || height,
+    }}
+    {...props}
+  />
+);
+
+export const HeartFilledIcon = ({
+  size = 24,
   width,
   height,
   ...props
-}) => (
-  <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-    <g id="Generative_Object">
-      <g>
-        <path d="M181.17,140.6c22.07,1.36,156.74-1.77,164.79,0,2.8.62,5.36,4.68,5.8,7.31,1.91,11.53-1.46,185.53,0,216.19-1.07,4.05-3.34,6.92-7.31,8.31-24.79-1.27-151.82,1.66-161.76,0-11-1.84-6.34-15.82-7.31-23.43,26.08-.87,19.99,4.37,20.66-25.2-1.17-3.47-17.12-.82-20.66-2.02v-24.19c26.08-.87,19.99,4.37,20.66-25.2-1.16-3.56-16.97-.77-20.66-2.02v-24.69c24.54-.98,21.25,5.02,20.16-25.7l-20.16-1.51v-24.19c26.08-.87,19.99,4.37,20.66-25.2-1.16-3.56-16.97-.76-20.66-2.02,1.22-6.97-3.75-24.62,5.8-26.46Z" />
-        <path d="M161.01,223.24h30.24c1.64,24.55,2.09,17.71-30.24,17.64v-17.64Z" />
-        <path d="M161.01,326.55h30.24c1.64,24.55,2.09,17.71-30.24,17.64v-17.64Z" />
-        <polygon points="161.01 171.84 191.24 171.84 191.5 188.72 161.01 189.48 161.01 171.84" />
-        <polygon points="161.01 275.15 191.24 275.15 191.5 292.03 161.01 292.79 161.01 275.15" />
-      </g>
-    </g>
-  </svg>
+}: IconSvgProps) => (
+  <BookHeart
+    style={{
+      width: size || width,
+      height: size || height,
+    }}
+    {...props}
+  />
 );
 
 export const DiscordIcon: React.FC<IconSvgProps> = ({
@@ -130,30 +137,7 @@ export const SunFilledIcon = ({
   </svg>
 );
 
-export const HeartFilledIcon = ({
-  size = 24,
-  width,
-  height,
-  ...props
-}: IconSvgProps) => (
-  <svg
-    aria-hidden="true"
-    focusable="false"
-    height={size || height}
-    role="presentation"
-    viewBox="0 0 24 24"
-    width={size || width}
-    {...props}
-  >
-    <path
-      d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z"
-      fill="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-    />
-  </svg>
-);
+
 
 export const SearchIcon = (props: IconSvgProps) => (
   <svg
