@@ -9,6 +9,8 @@ import { Tabs, Tab } from "@heroui/tabs";
 import { Tooltip } from "@heroui/tooltip";
 import dotenv from "dotenv";
 import { ListRestart } from "lucide-react";
+import "@upstash/feedback/index.css";
+import FeedbackWidget from "@upstash/feedback";
 
 dotenv.config();
 
@@ -301,6 +303,7 @@ export default function Home() {
             </CardBody>
           </Card>
         </Tooltip>
+        <FeedbackWidget type="full" />
         <Spacer y={4} />
       </div>
 
