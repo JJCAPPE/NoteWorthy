@@ -148,7 +148,7 @@ export default function Home() {
       <Spacer y={4} />
       <div className="container flex flex-col justify-center mx-auto px-4">
         <Spacer y={4} />
-        <Tooltip showArrow defaultOpen color="success" content="Rotate Horizonaly for Better Viewing">
+        <Tooltip showArrow defaultOpen isOpen={true} color="success" content="Rotate Horizonally for Better Viewing">
           <Card
             onDragOver={handleDragOver}
             onDrop={handleDrop}
@@ -156,10 +156,11 @@ export default function Home() {
             onDragLeave={() => setIsDragging(false)}
             className="w-full max-w-[1000px]"
           >
-            <CardHeader className="flex gap-3">
-              <h1 className="text-2xl font-extrabold text-center">
-                Convert your Handwritten Notes to PDF
-              </h1>
+            <CardHeader className="flex-col gap-3">
+              <p className="text-2xl font-bold text-center">
+                <b>Convert your Handwritten Notes to PDF</b>
+              </p>
+              <p className="text-small text-default-500">Upload JPEG, PNG, or WEBP files</p>
             </CardHeader>
             <Divider />
             <CardBody>
