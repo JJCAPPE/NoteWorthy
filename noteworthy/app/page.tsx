@@ -1,6 +1,6 @@
 "use client";
-import { Button } from "@heroui/button";
-import { Card, CardHeader, CardBody } from "@heroui/card";
+import { Button, ButtonGroup } from "@heroui/button";
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
 import { Divider } from "@heroui/divider";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -9,8 +9,6 @@ import { Tabs, Tab } from "@heroui/tabs";
 import { Tooltip } from "@heroui/tooltip";
 import dotenv from "dotenv";
 import { ListRestart } from "lucide-react";
-import { Upload, message } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
 
 dotenv.config();
 
@@ -74,13 +72,13 @@ interface PdfMetadata {
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [messageText, setMessageText] = useState("");
+  const [message, setMessage] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
   const [pdfMetadata, setPdfMetadata] = useState<PdfMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [processType, setProcessType] = useState("base");
 
-  // Update previews when files change
   useEffect(() => {
     if (files.length === 0) {
       setPreviewUrls([]);
@@ -91,8 +89,24 @@ export default function Home() {
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [files]);
 
-  // Remove the manual file input change handler.
-  // File selection is now handled by antd’s Upload via beforeUpload.
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      setFiles(Array.from(event.dataTransfer.files));
+      event.dataTransfer.clearData();
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setFiles(Array.from(event.target.files));
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -112,30 +126,16 @@ export default function Home() {
       setPdfUrl(url);
       setPdfMetadata({
         sourceFiles: files.map((f) => f.name),
-        processType,
+        processType: processType,
         timestamp: Date.now(),
       });
-      setMessageText("PDF generated and displayed below.");
+      setMessage("PDF generated and displayed below.");
     } catch (error) {
       console.error("Error uploading files:", error);
-      setMessageText("Error uploading files");
+      setMessage("Error uploading files");
       setPdfMetadata(null);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Optional: keep your drag & drop behavior on the card
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(event.dataTransfer.files);
-      setFiles((prev) => [...prev, ...droppedFiles]);
-      event.dataTransfer.clearData();
     }
   };
 
@@ -146,15 +146,12 @@ export default function Home() {
       <Spacer y={4} />
       <div className="container flex flex-col justify-center mx-auto px-4">
         <Spacer y={4} />
-        <Tooltip
-          showArrow
-          defaultOpen
-          color="success"
-          content="Rotate Horizonaly for Better Viewing"
-        >
+        <Tooltip showArrow defaultOpen color="success" content="Rotate Horizonaly for Better Viewing">
           <Card
             onDragOver={handleDragOver}
             onDrop={handleDrop}
+            onDragEnter={() => setIsDragging(true)}
+            onDragLeave={() => setIsDragging(false)}
             className="w-full max-w-[1000px]"
           >
             <CardHeader className="flex gap-3">
@@ -166,50 +163,57 @@ export default function Home() {
             <CardBody>
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <Card className="border-2 border-gray-200 bg-transparent shadow-none w-full">
+                <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleFileChange}
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            width: "100%",
+                            height: "100%",
+                            zIndex: 1,
+                            opacity: 0,
+                          }}
+                        />
                   <CardBody className="flex flex-row gap-2 justify-center py-8 px-4">
-                    {/* File selection via antd Upload */}
-                    <Upload
-                      beforeUpload={(file) => {
-                        setFiles((prev) => [...prev, file]);
-                        return false; // Prevent auto-upload
-                      }}
-                      multiple
-                      accept="image/*"
-                      showUploadList={false}
-                    >
                       <Button
+                        as="label"
                         color="primary"
                         className="relative cursor-pointer items-center justify-center gap-2 mr-2"
                         radius="full"
-                        variant="shadow"
+                        variant="flat"
                       >
-                        <UploadOutlined />
-                        Select Files
+                        <span>Upload Files</span>
                       </Button>
-                    </Upload>
-                    {/* Camera capture using antd Upload with capture attribute */}
-                    <Upload
-                      beforeUpload={(file) => {
-                        setFiles((prev) => [...prev, file]);
-                        return false;
-                      }}
-                      multiple={false}
-                      accept="image/*"
-                      capture="environment"
-                      showUploadList={false}
+                    <Button
+                      as="label"
+                      isIconOnly
+                      aria-label="Camera"
+                      color="primary"
+                      variant="flat"
+                      radius="full"
+                      className="relative cursor-pointer"
                     >
-                      <Button
-                        as="label"
-                        isIconOnly
-                        aria-label="Camera"
-                        color="primary"
-                        variant="shadow"
-                        radius="full"
-                        className="relative cursor-pointer"
-                      >
-                        <CameraIcon />
-                      </Button>
-                    </Upload>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileChange}
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          width: "100%",
+                          height: "100%",
+                          opacity: 0,
+                          pointerEvents: "auto",
+                        }}
+                      />
+                      <CameraIcon />
+                    </Button>
                   </CardBody>
                 </Card>
                 {previewUrls.length > 0 && (
@@ -234,6 +238,8 @@ export default function Home() {
                     selectedKey={processType}
                     onSelectionChange={(key) => setProcessType(key as string)}
                     color="warning"
+                    variant="bordered"
+                    style={{ opacity: 0.7 }}
                   >
                     {tabOptions.map((tab) => (
                       <Tab
@@ -258,7 +264,7 @@ export default function Home() {
                     className="w-full max-w-md"
                     type="submit"
                     color="secondary"
-                    variant="shadow"
+                    variant="flat"
                     radius="full"
                     isDisabled={
                       files.length === 0 ||
@@ -278,7 +284,7 @@ export default function Home() {
                   </Button>
                   <Button
                     color="danger"
-                    variant="shadow"
+                    variant="flat"
                     radius="full"
                     onPress={() => {
                       setPdfUrl("");

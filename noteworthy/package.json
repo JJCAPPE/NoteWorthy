@@ -31,7 +31,6 @@
     "@react-aria/visually-hidden": "3.8.18",
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
-    "antd": "^5.24.1",
     "clsx": "2.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
