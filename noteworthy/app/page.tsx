@@ -75,7 +75,7 @@ export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [message, setMessage] = useState("");
-  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfUrl, setPdfUrl] = useState("/sample.pdf");
   const [pdfMetadata, setPdfMetadata] = useState<PdfMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -143,12 +143,18 @@ export default function Home() {
 
   return (
     <div
-      className={`flex ${pdfUrl ? "flex-row" : "flex-col"} items-center justify-start min-h-screen w-[90vw] mx-auto`}
+      className={`flex ${pdfUrl ? "flex-row" : "flex-col"} items-center justify-start min-h-screen w-[90vw] mx-auto `}
     >
       <Spacer y={4} />
       <div className="container flex flex-col justify-center mx-auto px-4">
         <Spacer y={4} />
-        <Tooltip showArrow defaultOpen isOpen={true} color="success" content="Rotate Horizonally for Better Viewing">
+        <Tooltip
+          showArrow
+          defaultOpen
+          isOpen={true}
+          color="primary"
+          content="Rotate Horizonally for Better Viewing"
+        >
           <Card
             onDragOver={handleDragOver}
             onDrop={handleDrop}
@@ -160,43 +166,45 @@ export default function Home() {
               <p className="text-2xl font-bold text-center">
                 <b>Convert your Handwritten Notes to PDF</b>
               </p>
-              <p className="text-small text-default-500">Upload JPEG, PNG, or WEBP files</p>
+              <p className="text-small text-default-500">
+                Upload JPEG, PNG, or WEBP files
+              </p>
             </CardHeader>
             <Divider />
             <CardBody>
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <Card className="border-2 border-gray-200 bg-transparent shadow-none w-full">
-                <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleFileChange}
-                          style={{
-                            position: "absolute",
-                            left: 0,
-                            top: 0,
-                            width: "100%",
-                            height: "100%",
-                            zIndex: 1,
-                            opacity: 0,
-                          }}
-                        />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileChange}
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      width: "100%",
+                      height: "100%",
+                      zIndex: 1,
+                      opacity: 0,
+                    }}
+                  />
                   <CardBody className="flex flex-row gap-2 justify-center py-8 px-4">
-                      <Button
-                        as="label"
-                        color="primary"
-                        className="relative cursor-pointer items-center justify-center gap-2 mr-2"
-                        radius="full"
-                        variant="flat"
-                      >
-                        <span>Upload Files</span>
-                      </Button>
+                    <Button
+                      as="label"
+                      color="primary"
+                      className="relative cursor-pointer items-center justify-center gap-2 mr-2"
+                      radius="full"
+                      variant="solid"
+                    >
+                      <span>Upload Files</span>
+                    </Button>
                     <Button
                       as="label"
                       isIconOnly
                       aria-label="Camera"
                       color="primary"
-                      variant="flat"
+                      variant="ghost"
                       radius="full"
                       className="relative cursor-pointer"
                     >
@@ -240,9 +248,8 @@ export default function Home() {
                   <Tabs
                     selectedKey={processType}
                     onSelectionChange={(key) => setProcessType(key as string)}
-                    color="warning"
+                    color="primary"
                     variant="bordered"
-                    style={{ opacity: 0.7 }}
                   >
                     {tabOptions.map((tab) => (
                       <Tab
@@ -252,7 +259,7 @@ export default function Home() {
                             content={tab.tooltipContent}
                             placement="top"
                             color={
-                              processType === tab.key ? "warning" : undefined
+                              processType === tab.key ? "primary" : undefined
                             }
                           >
                             <span>{tab.label}</span>
@@ -266,8 +273,8 @@ export default function Home() {
                   <Button
                     className="w-full max-w-md"
                     type="submit"
-                    color="secondary"
-                    variant="flat"
+                    color="primary"
+                    variant="ghost"
                     radius="full"
                     isDisabled={
                       files.length === 0 ||
@@ -286,8 +293,8 @@ export default function Home() {
                     Convert to PDF
                   </Button>
                   <Button
-                    color="danger"
-                    variant="flat"
+                    color="primary"
+                    variant="solid"
                     radius="full"
                     onPress={() => {
                       setPdfUrl("");
@@ -309,7 +316,26 @@ export default function Home() {
       </div>
 
       <Spacer y={4} />
-      {pdfUrl && (
+      {pdfUrl === "/sample.pdf" ? (
+        <Tooltip
+          showArrow
+          defaultOpen
+          isOpen={true}
+          color="primary"
+          offset={-40}
+          content="MAKE YOUR NOTES LOOK LIKE THIS"
+        >
+          <div className="mt-8 w-full max-w-4xl">
+            <iframe
+              src={pdfUrl}
+              width="100%"
+              height="800"
+              title="Generated PDF"
+              className="border rounded-md shadow-md"
+            />
+          </div>
+        </Tooltip>
+      ) : (
         <div className="mt-8 w-full max-w-4xl">
           <iframe
             src={pdfUrl}

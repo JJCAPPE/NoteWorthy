@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.feedback-widget-trigger-button {
+    background-color: #ffffff !important; /* Light mode: White */
+    color: #000000 !important;
+}
+
+button.feedback-widget-form-control {
+    background-color: #000000 !important; /* Light mode: White */
+    color: #ffffff !important;
+}
+
