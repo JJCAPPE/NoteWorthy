@@ -21,34 +21,39 @@ module.exports = {
             dark: {
                 colors: {
                     primary: {
-                        DEFAULT: "#F5BCC4",
-                        foreground: "#F4F3ED",
+                        DEFAULT: "#1C1C1C",  // Very dark gray (almost black)
+                        foreground: "#EDEDED",  // Light gray (almost white)
                     },
                     secondary: {
-                        DEFAULT: "#15A1C2",
-                        foreground: "#F4F3ED",
+                        DEFAULT: "#2A2A2A",  // A bit lighter than primary's background
+                        foreground: "#DADADA",  // Slightly darker light gray for contrast
                     },
-                    focus: "#D57CB6",
-
+                    focus: "#333333",  // Distinct dark shade for focus elements
+                    warning: {
+                        DEFAULT: "#262626",  // A unique shade for warnings, slightly brighter than primary
+                        foreground: "#F0F0F0",  // A light gray for text to ensure good contrast
+                    },
                 },
             },
+            
             light: {
                 colors: {
                     primary: {
-                        DEFAULT: "#146C86",
-                        foreground: "#F4F3ED",
+                        DEFAULT: "#F8F8F8",  // Nearly white with a soft hint of gray
+                        foreground: "#1C1C1C",  // Very dark gray for text
                     },
                     secondary: {
-                        DEFAULT: "#F5BCC4",
-                        foreground: "#F4F3ED",
+                        DEFAULT: "#F0F0F0",  // A slightly warmer off-white
+                        foreground: "#2A2A2A",  // Darker gray for text contrast
                     },
                     warning: {
-                        DEFAULT: "#BEA030",
-                        foreground: "#F4F3ED",
+                        DEFAULT: "#E8E8E8",  // A subtle, muted light gray
+                        foreground: "#333333",  // Dark gray for clarity on warning elements
                     },
-                    focus: "#15A1C2",
+                    focus: "#DFDFDF",  // A distinct off-white shade for focus
                 },
             }
+            
         }
     })],
 }
