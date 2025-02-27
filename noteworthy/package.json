@@ -20,6 +20,7 @@
     "@heroui/link": "2.2.7",
     "@heroui/listbox": "2.3.9",
     "@heroui/navbar": "2.2.8",
+    "@heroui/react": "^2.7.2",
     "@heroui/snippet": "2.2.10",
     "@heroui/spacer": "^2.2.7",
     "@heroui/switch": "2.2.8",

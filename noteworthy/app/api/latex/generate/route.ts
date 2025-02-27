@@ -51,67 +51,14 @@ export async function POST(request: NextRequest) {
     // Remove any instances of ", tdplot_main_coords"
     cleanedLatex = cleanedLatex.replace(/, tdplot_main_coords/g, "");
 
-    const templatePath = path.join(
-      process.cwd(),
-      "app",
-      "api",
-      "upload",
-      "templates",
-      "main.txt"
-    );
-    const template = await fsPromises.readFile(templatePath, "utf8");
-    const finalLatex = template.replace("<content>", cleanedLatex);
+    await cleanUpFiles(uploadDir);
 
-    const jsonFriendly = JSON.stringify({ latex: finalLatex });
+    return NextResponse.json({ cleanedLatex }); 
 
-    // Call the Cloud Run endpoint for LaTeX compilation
-    const cloudRunUrl =
-      "https://latex-service-7822565772.us-central1.run.app/compile";
-    const response = await fetch(cloudRunUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: jsonFriendly,
-    });
-
-    // Enhanced error handling: Try to read error details if response is not OK.
-    if (!response.ok) {
-      let errorDetails = "";
-      try {
-        errorDetails = await response.text();
-      } catch (e) {
-        errorDetails = `Unable to parse error details.`;
-      }
-      throw new Error(
-        `LaTeX compilation failed with status ${response.status}: ${errorDetails}`
-      );
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const pdfBuffer = Buffer.from(arrayBuffer);
-
-    // Cleanup temporary files
-    await Promise.all(filePaths.map((filePath) => fsPromises.unlink(filePath)));
-
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": "attachment; filename=output.pdf",
-      },
-    });
   } catch (error) {
     console.error("Error processing request:", error);
 
-    // Cleanup files on error, if possible
-    try {
-      const files = await fsPromises.readdir(uploadDir);
-      await Promise.all(
-        files.map((file) => fsPromises.unlink(path.join(uploadDir, file)))
-      );
-    } catch (cleanupError) {
-      console.error("Error cleaning up files:", cleanupError);
-    }
+    await cleanUpFiles(uploadDir);
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -119,5 +66,14 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+async function cleanUpFiles(dir: string) {
+  try {
+    const files = await fsPromises.readdir(dir);
+    await Promise.all(files.map(file => fsPromises.unlink(path.join(dir, file))));
+  } catch (error) {
+    console.error("Cleanup failed:", error);
   }
 }

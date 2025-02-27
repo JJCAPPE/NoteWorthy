@@ -8,8 +8,15 @@ import { Spacer } from "@heroui/spacer";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Tooltip } from "@heroui/tooltip";
 import dotenv from "dotenv";
-import { ListRestart } from "lucide-react";
+import { ListRestart, Clipboard, ClipboardList } from "lucide-react";
 import "@upstash/feedback/index.css";
+import { CameraIcon } from "@/components/icons";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@heroui/react";
 import FeedbackWidget from "@upstash/feedback";
 
 dotenv.config();
@@ -32,39 +39,6 @@ const tabOptions = [
   },
 ];
 
-const CameraIcon = ({
-  fill,
-  size,
-  height,
-  width,
-  ...props
-}: {
-  fill?: string;
-  size?: number;
-  height?: number;
-  width?: number;
-  [key: string]: any;
-}) => {
-  fill = fill || "currentColor";
-  return (
-    <svg
-      fill="none"
-      height={size || height || 24}
-      viewBox="0 0 24 24"
-      width={size || width || 24}
-      xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
-      <path
-        clipRule="evenodd"
-        d="M17.44 6.236c.04.07.11.12.2.12 2.4 0 4.36 1.958 4.36 4.355v5.934A4.368 4.368 0 0117.64 21H6.36A4.361 4.361 0 012 16.645V10.71a4.361 4.361 0 014.36-4.355c.08 0 .16-.04.19-.12l.06-.12.106-.222a97.79 97.79 0 01.714-1.486C7.89 3.51 8.67 3.01 9.64 3h4.71c.97.01 1.76.51 2.22 1.408.157.315.397.822.629 1.31l.141.299.1.22zm-.73 3.836c0 .5.4.9.9.9s.91-.4.91-.9-.41-.909-.91-.909-.9.41-.9.91zm-6.44 1.548c.47-.47 1.08-.719 1.73-.719.65 0 1.26.25 1.72.71.46.459.71 1.068.71 1.717A2.438 2.438 0 0112 15.756c-.65 0-1.26-.25-1.72-.71a2.408 2.408 0 01-.71-1.717v-.01c-.01-.63.24-1.24.7-1.699zm4.5 4.485a3.91 3.91 0 01-2.77 1.15 3.921 3.921 0 01-3.93-3.926 3.865 3.865 0 011.14-2.767A3.921 3.921 0 0112 9.402c1.05 0 2.04.41 2.78 1.15.74.749 1.15 1.738 1.15 2.777a3.958 3.958 0 01-1.16 2.776z"
-        fill={fill}
-        fillRule="evenodd"
-      />
-    </svg>
-  );
-};
-
 interface PdfMetadata {
   sourceFiles: string[]; // File names of source images
   processType: string; // Type of processing used
@@ -80,6 +54,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [processType, setProcessType] = useState("base");
+  const [latexCode, setLatexCode] = useState("");
+  const [fullCode, setFullCode] = useState("");
+
+  const iconClasses =
+    "text-xl text-default-500 pointer-events-none flex-shrink-0";
 
   useEffect(() => {
     if (files.length === 0) {
@@ -110,32 +89,86 @@ export default function Home() {
     }
   };
 
+  async function fetchComposedLatex(latexCode: string): Promise<string | ""> {
+    try {
+      const response = await fetch("/api/latex/compose", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ latexCode }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to fetch composed LaTeX:", response.statusText);
+        return "null";
+      }
+
+      const data = await response.json();
+      return data.finalLatex;
+    } catch (error) {
+      console.error("Error calling /api/latex/compose:", error);
+      return "null";
+    }
+  }
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (files.length === 0) return;
     setIsLoading(true);
-    const formData = new FormData();
-    files.forEach((file) => formData.append("noteImage", file));
-    formData.append("processType", processType);
 
     try {
-      const response = await fetch(`/api/upload`, {
+      // Step 1: Generate LaTeX
+      const latexFormData = new FormData();
+      files.forEach((file) => latexFormData.append("noteImage", file));
+      latexFormData.append("processType", processType);
+
+      const latexResponse = await fetch("/api/latex/generate", {
         method: "POST",
-        body: formData,
+        body: latexFormData,
       });
-      const blob = await response.blob();
+
+      if (!latexResponse.ok) {
+        const errorData = await latexResponse.json();
+        console.error("LaTeX Error:", errorData.error, errorData.details);
+        setMessage(`LaTeX Error: ${errorData.error}`);
+        return;
+      }
+
+      const { cleanedLatex } = await latexResponse.json();
+
+      setLatexCode(cleanedLatex);
+
+      const fullLatex = await fetchComposedLatex(cleanedLatex);
+
+      setFullCode(fullLatex);
+
+      // Step 2: Generate PDF using JSON
+      const pdfResponse = await fetch("/api/generatePdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latexCode: fullLatex }),
+      });
+
+      if (!pdfResponse.ok) {
+        const errorData = await pdfResponse.json();
+        console.error("PDF Error:", errorData.error, errorData.details);
+        setMessage(`PDF Error: ${errorData.error}`);
+        return;
+      }
+
+      const blob = await pdfResponse.blob();
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       setPdfMetadata({
         sourceFiles: files.map((f) => f.name),
-        processType: processType,
+        processType,
         timestamp: Date.now(),
       });
-      setMessage("PDF generated and displayed below.");
+      setMessage("PDF generated successfully.");
     } catch (error) {
-      console.error("Error uploading files:", error);
-      setMessage("Error uploading files");
-      setPdfMetadata(null);
+      console.error("Error:", error);
+      setMessage("An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -151,7 +184,6 @@ export default function Home() {
         <Tooltip
           showArrow
           defaultOpen
-          isOpen={true}
           color="primary"
           content="Rotate Horizonally for Better Viewing"
         >
@@ -301,6 +333,8 @@ export default function Home() {
                       setPdfMetadata(null);
                       setFiles([]);
                       setProcessType("base");
+                      setLatexCode("");
+                      setFullCode("");
                     }}
                     isDisabled={files.length === 0 || isLoading}
                   >
@@ -311,6 +345,35 @@ export default function Home() {
             </CardBody>
           </Card>
         </Tooltip>
+        <Spacer y={4} />
+        {fullCode && <Dropdown>
+          <DropdownTrigger>
+            <Button color="primary" variant="bordered"><b>Get Source</b></Button>
+          </DropdownTrigger>
+          <DropdownMenu
+            aria-label="Dropdown menu with description"
+            variant="faded"
+          >
+            <DropdownItem
+              key="new"
+              description="Copies a snippet of the Latex code which makes up your notes, can be pasted into existing Latex document"
+              shortcut="⌘C"
+              startContent={<Clipboard className={iconClasses} />}
+              onPress={() => navigator.clipboard.writeText(latexCode)}
+            >
+              Copy Snippet
+            </DropdownItem>
+            <DropdownItem
+              key="copy"
+              description="Copy full Latex Document to clipboard"
+              shortcut="⌘⇧C"
+              startContent={<ClipboardList className={iconClasses} />}
+              onPress={() => navigator.clipboard.writeText(fullCode)}
+            >
+              Copy Document
+            </DropdownItem>
+          </DropdownMenu>
+        </Dropdown>}
         <FeedbackWidget type="full" />
         <Spacer y={4} />
       </div>
@@ -320,10 +383,13 @@ export default function Home() {
         <Tooltip
           showArrow
           defaultOpen
-          isOpen={true}
           color="primary"
           offset={-40}
-          content="MAKE YOUR NOTES LOOK LIKE THIS"
+          content={
+            <span style={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+              MAKE YOUR NOTES LOOK LIKE THIS
+            </span>
+          }
         >
           <div className="mt-8 w-full max-w-4xl">
             <iframe
