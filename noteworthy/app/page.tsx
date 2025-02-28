@@ -57,8 +57,7 @@ export default function Home() {
   const [latexCode, setLatexCode] = useState("");
   const [fullCode, setFullCode] = useState("");
 
-  const iconClasses =
-    "text-xl text-default-500 pointer-events-none flex-shrink-0";
+  const iconClasses="text-xl text-default-500 pointer-events-none flex-shrink-0";
 
   useEffect(() => {
     if (files.length === 0) {
@@ -69,6 +68,26 @@ export default function Home() {
     setPreviewUrls(urls);
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [files]);
+
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.shiftKey && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "e") {
+        if (fullCode) {
+          event.preventDefault();
+          copyToClipboard(fullCode);
+        }
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "e") {
+        if (latexCode) {
+          event.preventDefault();
+          copyToClipboard(latexCode);
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeydown);
+    return () => {
+      document.removeEventListener("keydown", handleKeydown);
+    };
+  })
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -87,6 +106,12 @@ export default function Home() {
     if (event.target.files && event.target.files.length > 0) {
       setFiles(Array.from(event.target.files));
     }
+  };
+
+  const copyToClipboard = (code: string) => {
+    navigator.clipboard.writeText(code)
+      .then(() => alert("Copied to clipboard!"))
+      .catch(err => console.error("Failed to copy:", err));
   };
 
   async function fetchComposedLatex(latexCode: string): Promise<string | ""> {
@@ -302,28 +327,32 @@ export default function Home() {
                   </Tabs>
                 </div>
                 <div className="flex flex-row gap-4 justify-center">
-                  <Button
-                    className="w-full max-w-md"
-                    type="submit"
-                    color="primary"
-                    variant="ghost"
-                    radius="full"
-                    isDisabled={
-                      files.length === 0 ||
-                      isLoading ||
-                      Boolean(
-                        pdfMetadata &&
-                          pdfMetadata.processType === processType &&
-                          pdfMetadata.sourceFiles.length === files.length &&
-                          pdfMetadata.sourceFiles.every(
-                            (name, i) => files[i].name === name
+                  <div>
+                    <Tooltip color="primary" placement="bottom-start" content="This may take up to a minute, depending on your document lenght">
+                      <Button
+                        className="w-full max-w-md"
+                        type="submit"
+                        color="primary"
+                        variant="ghost"
+                        radius="full"
+                        isDisabled={
+                          files.length === 0 ||
+                          isLoading ||
+                          Boolean(
+                            pdfMetadata &&
+                              pdfMetadata.processType === processType &&
+                              pdfMetadata.sourceFiles.length === files.length &&
+                              pdfMetadata.sourceFiles.every(
+                                (name, i) => files[i].name === name
+                              )
                           )
-                      )
-                    }
-                    isLoading={isLoading}
-                  >
-                    Convert to PDF
-                  </Button>
+                        }
+                        isLoading={isLoading}
+                      >
+                        Convert to PDF
+                      </Button>
+                    </Tooltip>
+                  </div>
                   <Button
                     color="primary"
                     variant="solid"
@@ -346,34 +375,46 @@ export default function Home() {
           </Card>
         </Tooltip>
         <Spacer y={4} />
-        {fullCode && <Dropdown>
-          <DropdownTrigger>
-            <Button color="primary" variant="bordered"><b>Get Source</b></Button>
-          </DropdownTrigger>
-          <DropdownMenu
-            aria-label="Dropdown menu with description"
-            variant="faded"
-          >
-            <DropdownItem
-              key="new"
-              description="Copies a snippet of the Latex code which makes up your notes, can be pasted into existing Latex document"
-              shortcut="⌘C"
-              startContent={<Clipboard className={iconClasses} />}
-              onPress={() => navigator.clipboard.writeText(latexCode)}
-            >
-              Copy Snippet
-            </DropdownItem>
-            <DropdownItem
-              key="copy"
-              description="Copy full Latex Document to clipboard"
-              shortcut="⌘⇧C"
-              startContent={<ClipboardList className={iconClasses} />}
-              onPress={() => navigator.clipboard.writeText(fullCode)}
-            >
-              Copy Document
-            </DropdownItem>
-          </DropdownMenu>
-        </Dropdown>}
+
+        {fullCode && (
+          
+            <Card className="max-w-md">
+              <CardBody>
+                <Dropdown>
+                  <DropdownTrigger>
+                    <Button color="primary" variant="bordered">
+                      <b>Get Source</b>
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu
+                    aria-label="Dropdown menu with description"
+                    variant="faded"
+                  >
+                    <DropdownItem
+                      key="new"
+                      description="Copies a snippet of the Latex code which makes up your notes, can be pasted into existing Latex document"
+                      shortcut="⌘E"
+                      startContent={<Clipboard className={iconClasses} />}
+                      onPress={() => copyToClipboard(latexCode)}
+                    >
+                      Copy Snippet
+                    </DropdownItem>
+                    <DropdownItem
+                      key="copy"
+                      description="Copy full Latex Document to clipboard"
+                      shortcut="⌘⇧E"
+                      startContent={<ClipboardList className={iconClasses} />}
+                      onPress={() => copyToClipboard(fullCode)}
+                    >
+                      Copy Document
+                    </DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
+              </CardBody>
+            </Card>
+          
+        )}
+
         <FeedbackWidget type="full" />
         <Spacer y={4} />
       </div>
