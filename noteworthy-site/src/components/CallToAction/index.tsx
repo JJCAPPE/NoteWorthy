@@ -16,14 +16,13 @@ const CallToAction = () => {
                   </span>
                 </h2>
                 <p className="mx-auto mb-6 max-w-[515px] text-base leading-[1.5] text-white">
-                  There are many variations of passages of Lorem Ipsum but the
-                  majority have suffered in some form.
+                 Try NoteWorthy for free right now, and convert your handwritten notes into professional-quality PDFs in seconds. 
                 </p>
                 <Link
                   href="/"
                   className="inline-block rounded-md border border-transparent bg-secondary px-7 py-3 text-base font-medium text-white transition hover:bg-[#0BB489]"
                 >
-                  Start using Play
+                  Start using NoteWorthy
                 </Link>
               </div>
             </div>

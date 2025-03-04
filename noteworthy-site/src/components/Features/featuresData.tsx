@@ -18,9 +18,9 @@ const featuresData: Feature[] = [
       </svg>
     ),
     title: "Free and Open-Source",
-    paragraph: "Lorem Ipsum is simply dummy text of the printing and industry.",
+    paragraph: "The code is open source and free to use, the free version of the site is open to all and ahs unlimited use.",
     btn: "Learn More",
-    btnLink: "/#",
+    btnLink: "https://github.com/JJCAPPE/noteworthy",
   },
   {
     id: 2,
@@ -38,10 +38,10 @@ const featuresData: Feature[] = [
         />
       </svg>
     ),
-    title: "Modern Design",
-    paragraph: "Lorem Ipsum is simply dummy text of the printing and industry.",
+    title: "Modern OCR and LLMs",
+    paragraph: "NoteWorthy uses modern OCR and LLMs from Google to extract text from images and PDFs, making it easy to read and understand documents.",
     btn: "Learn More",
-    btnLink: "/#",
+    btnLink: "https://aistudio.google.com/prompts/new_chat",
   },
   {
     id: 3,
@@ -91,10 +91,10 @@ const featuresData: Feature[] = [
         />
       </svg>
     ),
-    title: "SaaS Starter Kit",
-    paragraph: "Lorem Ipsum is simply dummy text of the printing and industry.",
-    btn: "Learn More",
-    btnLink: "/#",
+    title: "Implement in your own Projects",
+    paragraph: "Easily copy the latex template, generated code or full document and use it in your own projects. To edit documents, simply open them in Overleaf or other Latex editors",
+    btn: "Try it now",
+    btnLink: "https://www.overleaf.com/read/pxqmmnqhfspn#ecd649",
   },
   {
     id: 4,
@@ -124,10 +124,10 @@ const featuresData: Feature[] = [
         />
       </svg>
     ),
-    title: "All Essential Integrations",
-    paragraph: "Lorem Ipsum is simply dummy text of the printing and industry.",
+    title: "Save your work",
+    paragraph: "With the paid plan, save and combine pdf's inside NoteWorthy to access them at any time.",
     btn: "Learn More",
-    btnLink: "/#",
+    btnLink: "/pricing",
   },
 ];
 export default featuresData;

@@ -14,7 +14,7 @@ const Pricing = () => {
           <SectionTitle
             subtitle="Pricing Table"
             title="Our Pricing Plan"
-            paragraph="There are many variations of passages of Lorem Ipsum available but the majority have suffered alteration in some form."
+            paragraph="NoteWorthy offers a completely free version of the complete service, with ability to dowload generated PDF's and Latex code. If you want to save your work, tweak prompts and try different generation models, there is a paid plan available."
             center
           />
         </div>
