@@ -7,8 +7,8 @@ const Faq = () => {
       <div className="container">
         <SectionTitle
           subtitle="FAQ"
-          title="Any Questions? Answered"
-          paragraph="There are many variations of passages of Lorem Ipsum available but the majority have suffered alteration in some form."
+          title="Have Questions? We've Got Answers"
+          paragraph="Discover how Noteworthy transforms your handwritten or printed notes into polished PDFs and editable LaTeX code."
           width="640px"
           center
         />
@@ -16,31 +16,31 @@ const Faq = () => {
         <div className="-mx-4 mt-[60px] flex flex-wrap lg:mt-20">
           <div className="w-full px-4 lg:w-1/2">
             <SingleFaq
-              question="How to use TailGrids?"
-              answer="It takes 2-3 weeks to get your first blog post ready. That includes the in-depth research & creation of your monthly content marketing strategy that we do before writing your first blog post, Ipsum available ."
+              question="How does Noteworthy work?"
+              answer="Simply upload images of your notes, and Noteworthy will perform OCR to convert them into LaTeX code before compiling a PDF. You can also copy the generated code for further editing."
             />
             <SingleFaq
-              question="How to download icons from LineIcons?"
-              answer="It takes 2-3 weeks to get your first blog post ready. That includes the in-depth research & creation of your monthly content marketing strategy that we do before writing your first blog post, Ipsum available ."
+              question="What image formats are supported?"
+              answer="Noteworthy supports standard image formats like JPEG and PNG. Just upload your note images and let our system handle the conversion."
             />
             <SingleFaq
-              question="Is GrayGrids part of UIdeck?"
-              answer="It takes 2-3 weeks to get your first blog post ready. That includes the in-depth research & creation of your monthly content marketing strategy that we do before writing your first blog post, Ipsum available ."
+              question="What generation modes can I choose from?"
+              answer="You can select between summary, conversion, or expansion modes. Choose a summary for concise notes, conversion for a direct translation, or expansion for detailed study notes."
             />
           </div>
 
           <div className="w-full px-4 lg:w-1/2">
             <SingleFaq
-              question="Can I use this template for commercial project?"
-              answer="It takes 2-3 weeks to get your first blog post ready. That includes the in-depth research & creation of your monthly content marketing strategy that we do before writing your first blog post, Ipsum available ."
+              question="Can I edit the generated LaTeX code?"
+              answer="Absolutely! You can copy the full LaTeX document or specific snippets to integrate with your existing projects and customize as needed."
             />
             <SingleFaq
-              question="Do you have plan to releasing Play Pro?"
-              answer="It takes 2-3 weeks to get your first blog post ready. That includes the in-depth research & creation of your monthly content marketing strategy that we do before writing your first blog post, Ipsum available ."
+              question="Is my data secure?"
+              answer="Yes, your uploads are processed securely. We prioritize your privacy and ensure that your note data is handled with the utmost care."
             />
             <SingleFaq
-              question="Where and how to host this template?"
-              answer="It takes 2-3 weeks to get your first blog post ready. That includes the in-depth research & creation of your monthly content marketing strategy that we do before writing your first blog post, Ipsum available ."
+              question="How fast is the conversion process?"
+              answer="Noteworthy processes your uploads quickly. Depending on the number and complexity of your images, your PDF and LaTeX code will be ready in just a few moments."
             />
           </div>
         </div>
