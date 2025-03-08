@@ -19,7 +19,7 @@ const About = () => {
                 Effortlessly convert messy, handwritten notes into structured and professional-looking PDFs using LaTeX.  
             Our AI enhances readability, organizes content, and even expands or summarizes your notes for clarity.  
             <br /> <br />
-            Whether you're a student or professional, streamline your workflow with beautifully formatted documents 
+            Whether you are a student or professional, streamline your workflow with beautifully formatted documents 
             that make studying and reviewing easier than ever.
                 </p>
 
