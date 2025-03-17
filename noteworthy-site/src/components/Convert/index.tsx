@@ -203,7 +203,7 @@ const Convert = () => {
     );
   
   const resetForm = () => {
-    setPdfUrl("");
+    setPdfUrl("/sample.pdf");
     setPdfMetadata(null);
     setFiles([]);
     setProcessType("base");
