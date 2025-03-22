@@ -168,9 +168,11 @@ const Convert = () => {
       });
 
       if (!pdfResponse.ok) {
+        
         const errorData = await pdfResponse.json();
-        console.error("PDF Error:", errorData.error, errorData.details);
+        console.error("PDF_COMPILATION_ERROR:", errorData.error, errorData.details);
         setMessage(`PDF Error: ${errorData.error}`);
+        setPdfUrl("/error.pdf")
         return;
       }
 
