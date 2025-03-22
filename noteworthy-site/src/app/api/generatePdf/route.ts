@@ -7,10 +7,6 @@ export async function POST(request: NextRequest) {
     // Parse JSON input
     const { latexCode } = await request.json();
 
-    console.log("Received LaTeX code:", latexCode);
-    
-    // Validate input
-
     // Compile LaTeX
     const cloudRunUrl = "https://latex-service-7822565772.us-central1.run.app/compile";
     const response = await fetch(cloudRunUrl, {
@@ -22,10 +18,9 @@ export async function POST(request: NextRequest) {
     // Handle compilation errors
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`LaTeX compilation failed (${response.status}):`, errorText);
       return NextResponse.json(
         { 
-          error: "LaTeX compilation failed",
+          error: "LATEX_TO_PDF_COMPILATION_ERROR",
           details: errorText 
         },
         { status: 422 }  // 422 Unprocessable Entity
@@ -43,11 +38,11 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error("PDF generation error:", error);
+    console.error("LATEX_TO_PDF_COMPILATION_ERROR", error);
     
     return NextResponse.json(
       {
-        error: "Internal server error",
+        error: "LATEX_TO_PDF_COMPILATION_ERROR",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

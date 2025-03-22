@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
     if (typeof latexCode !== "string") {
       return NextResponse.json(
-        { error: "Invalid latexCode" },
+        { type: "INVALID_INPUT_COMPOSE", error: "Invalid latexCode" },
         { status: 400 }
       );
     }
