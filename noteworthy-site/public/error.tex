@@ -1,0 +1,34 @@
+\documentclass{article}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+
+
+\begin{document}
+
+\begin{tcolorbox}[colback=red!10,colframe=red!80,width=\textwidth,arc=3mm,auto outer arc]
+\centering
+{\Huge \textbf{\textsc{Error}}}\
+\Large The LaTeX code was generated successfully, but the compilation was unsuccessful.
+\end{tcolorbox}
+
+
+\noindent You can copy the source of the LaTeX or try to regenerate and recompile.
+\vspace{2.5em}
+\begin{tcolorbox}[colback=white,colframe=black,boxrule=1pt,width=\textwidth,arc=3mm,auto outer arc]
+    \begin{center}
+        \textbf{FUN FACT}
+    \end{center}
+\begin{center}
+	\input{yl.tikz}
+\end{center}
+\vspace{1.5em}
+\noindent The radius of the innermost circle is 1.  It is circumscribed by an 
+equilateral triangle, which is circumscribed by a circle, and so forth.  
+The radius of the circle as the number of figures approaches $\infty$ is 
+\[
+  \prod_{n=3}^\infty \sec\left(\frac{\pi}{n}\right) \approx 8.7
+\]
+\end{tcolorbox}
+
+
+\end{document}
