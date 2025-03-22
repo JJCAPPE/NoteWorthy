@@ -132,3 +132,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 backend/uploads/latexuploads/temp.fdb_latexmk
+noteworthy-site/public/error.tex
+.gitignore
+noteworthy-site/public/yl.tikz
