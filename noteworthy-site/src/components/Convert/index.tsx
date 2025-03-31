@@ -1,6 +1,12 @@
-"use client";import React, { useState, useEffect } from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { CameraIcon, Clipboard, ClipboardList, ListRestart } from "lucide-react";
+import {
+  CameraIcon,
+  Clipboard,
+  ClipboardList,
+  ListRestart,
+} from "lucide-react";
 
 const tabOptions = [
   {
@@ -24,12 +30,13 @@ interface PdfMetadata {
   sourceFiles: string[]; // File names of source images
   processType: string; // Type of processing used
   timestamp: number; // When the PDF was generated
+  prompt: string; // Custom prompt used
 }
 
 const Convert = () => {
   const [files, setFiles] = useState<File[]>([]);
+  const [customPrompt, setCustomPrompt] = useState("");
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [message, setMessage] = useState("");
   const [pdfUrl, setPdfUrl] = useState("/sample.pdf");
   const [pdfMetadata, setPdfMetadata] = useState<PdfMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,12 +59,19 @@ const Convert = () => {
 
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
-      if (event.shiftKey && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "e") {
+      if (
+        event.shiftKey &&
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "e"
+      ) {
         if (fullCode) {
           event.preventDefault();
           copyToClipboard(fullCode);
         }
-      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "e") {
+      } else if (
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "e"
+      ) {
         if (latexCode) {
           event.preventDefault();
           copyToClipboard(latexCode);
@@ -101,9 +115,10 @@ const Convert = () => {
   };
 
   const copyToClipboard = (code: string) => {
-    navigator.clipboard.writeText(code)
+    navigator.clipboard
+      .writeText(code)
       .then(() => alert("Copied to clipboard!"))
-      .catch(err => console.error("Failed to copy:", err));
+      .catch((err) => console.error("Failed to copy:", err));
   };
 
   async function fetchComposedLatex(latexCode: string): Promise<string | ""> {
@@ -148,7 +163,6 @@ const Convert = () => {
       if (!latexResponse.ok) {
         const errorData = await latexResponse.json();
         console.error("LaTeX Error:", errorData.error, errorData.details);
-        setMessage(`LaTeX Error: ${errorData.error}`);
         return;
       }
 
@@ -168,11 +182,13 @@ const Convert = () => {
       });
 
       if (!pdfResponse.ok) {
-        
         const errorData = await pdfResponse.json();
-        console.error("PDF_COMPILATION_ERROR:", errorData.error, errorData.details);
-        setMessage(`PDF Error: ${errorData.error}`);
-        setPdfUrl("/error.pdf")
+        console.error(
+          "PDF_COMPILATION_ERROR:",
+          errorData.error,
+          errorData.details,
+        );
+        setPdfUrl("/error.pdf");
         return;
       }
 
@@ -183,27 +199,25 @@ const Convert = () => {
         sourceFiles: files.map((f) => f.name),
         processType,
         timestamp: Date.now(),
+        prompt: customPrompt,
       });
-      setMessage("PDF generated successfully.");
     } catch (error) {
       console.error("Error:", error);
-      setMessage("An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const disableConversion = files.length === 0 || 
-    isLoading || 
+  const disableConversion =
+    files.length === 0 ||
+    isLoading ||
     Boolean(
       pdfMetadata &&
-      pdfMetadata.processType === processType &&
-      pdfMetadata.sourceFiles.length === files.length &&
-      pdfMetadata.sourceFiles.every(
-        (name, i) => files[i].name === name
-      )
+        pdfMetadata.processType === processType &&
+        pdfMetadata.sourceFiles.length === files.length &&
+        pdfMetadata.sourceFiles.every((name, i) => files[i].name === name),
     );
-  
+
   const resetForm = () => {
     setPdfUrl("/sample.pdf");
     setPdfMetadata(null);
@@ -211,6 +225,9 @@ const Convert = () => {
     setProcessType("base");
     setLatexCode("");
     setFullCode("");
+    setCustomPrompt("");
+    setPreviewUrls([]);
+    setIsLoading(false);
   };
 
   return (
@@ -222,17 +239,18 @@ const Convert = () => {
           <div className="w-full px-4 lg:w-7/12 xl:w-6/12">
             <div className="wow fadeInUp mb-12 lg:mb-0" data-wow-delay=".15s">
               <div className="mb-10 text-center">
-                <span className="mb-4 block text-base font-medium text-primary">
-                  CONVERT YOUR NOTES
+                <span className="mb-2 block text-base font-medium text-primary">
+                  CONVERT YOUR HANDWRITTEN NOTES
                 </span>
                 <h2 className="text-[32px] font-bold leading-tight text-dark dark:text-white sm:text-[40px] md:text-[44px]">
-                  Handwritten Notes to PDF
+                   Notes to PDF
                 </h2>
-                <p className="mt-4 max-w-[600px] mx-auto text-base text-body-color dark:text-dark-6">
-                  Upload your handwritten notes and convert them into professional PDF documents with our AI-powered tool.
+                <p className="mx-auto mt-4 max-w-[600px] text-base text-body-color dark:text-dark-6">
+                  Upload your handwritten notes and convert them into
+                  professional PDF documents with our AI-powered tool.
                 </p>
               </div>
-              
+
               <div
                 className={`wow fadeInUp rounded-lg bg-white p-8 shadow-testimonial dark:bg-dark-2 dark:shadow-none ${
                   isDragging ? "border-2 border-primary" : ""
@@ -251,9 +269,9 @@ const Convert = () => {
                 <p className="mb-6 text-center text-base text-body-color dark:text-dark-6">
                   Upload JPEG, PNG, or WEBP files
                 </p>
-                
+
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                  <div className="border-2 border-dashed border-[#f1f1f1] dark:border-dark-3 rounded-md p-8 text-center">
+                  <div className="rounded-md border-2 border-dashed border-[#f1f1f1] p-8 text-center dark:border-dark-3">
                     <input
                       type="file"
                       accept="image/*"
@@ -265,21 +283,24 @@ const Convert = () => {
                     <div className="flex flex-col items-center justify-center gap-4">
                       <label
                         htmlFor="file-upload"
-                        className="inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out hover:bg-primary/90 cursor-pointer"
+                        className="inline-flex cursor-pointer items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out hover:bg-primary/90"
                       >
                         Upload Files
                       </label>
-                      
+
                       <p className="text-sm text-body-color dark:text-dark-6">
                         Drag and drop your files here or click to browse
                       </p>
                     </div>
                   </div>
-                  
+
                   {previewUrls.length > 0 && (
                     <div className="mt-4 flex flex-wrap justify-center gap-4">
                       {previewUrls.map((url, index) => (
-                        <div key={index} className="relative border rounded shadow-sm overflow-hidden">
+                        <div
+                          key={index}
+                          className="relative overflow-hidden rounded border shadow-sm"
+                        >
                           <Image
                             src={url}
                             alt={`Preview ${index}`}
@@ -287,15 +308,17 @@ const Convert = () => {
                             width={100}
                             height={Math.min(
                               100,
-                              (url.match(/.*\.(.*)/) || [])[1] === "gif" ? 200 : 300
+                              (url.match(/.*\.(.*)/) || [])[1] === "gif"
+                                ? 200
+                                : 300,
                             )}
                           />
                         </div>
                       ))}
                     </div>
                   )}
-                  
-                  <div className="w-full flex justify-center border-b border-[#f1f1f1] dark:border-dark-3 mb-6">
+
+                  <div className="mb-2 flex w-full justify-center border-b border-[#f1f1f1] dark:border-dark-3">
                     <div className="flex">
                       {tabOptions.map((tab) => (
                         <div key={tab.key} className="relative">
@@ -303,8 +326,8 @@ const Convert = () => {
                             type="button"
                             className={`px-6 py-3 text-base font-medium ${
                               processType === tab.key
-                                ? "text-primary border-b-2 border-primary"
-                                : "text-body-color dark:text-dark-6 hover:text-primary"
+                                ? "border-b-2 border-primary text-primary"
+                                : "text-body-color hover:text-primary dark:text-dark-6"
                             }`}
                             onClick={() => setProcessType(tab.key)}
                             onMouseEnter={() => setActiveTooltip(tab.key)}
@@ -312,26 +335,38 @@ const Convert = () => {
                           >
                             {tab.label}
                           </button>
-                          
                           {activeTooltip === tab.key && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-dark text-white text-xs rounded whitespace-nowrap">
+                            <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded bg-dark px-3 py-1 text-xs text-white">
                               {tab.tooltipContent}
-                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-solid border-t-dark border-t-4 border-x-transparent border-x-4 border-b-0"></div>
+                              <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-x-4 border-b-0 border-t-4 border-solid border-x-transparent border-t-dark"></div>
                             </div>
                           )}
                         </div>
                       ))}
                     </div>
                   </div>
-                  
-                  <div className="flex flex-row gap-4 justify-center">
+
+                  <div className="mb-2 flex w-full justify-center">
+                    <textarea
+                      value={customPrompt}
+                      onChange={(e) => {
+                        setCustomPrompt(e.target.value);
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                      }}
+                      placeholder="Add custom instructions (optional)"
+                      className="min-h-[48px] w-full max-w-md resize-none overflow-hidden rounded-lg border border-[#f1f1f1] bg-transparent px-4 py-3 text-body-color focus:outline-none focus:ring-2 focus:ring-primary dark:border-dark-3 dark:text-dark-6"
+                      rows={1}
+                    />
+                  </div>
+                  <div className="flex flex-row justify-center gap-4">
                     <div className="relative">
                       <button
                         type="submit"
                         className={`inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out ${
                           disableConversion
-                            ? "opacity-50 cursor-not-allowed"
-                            : "hover:bg-primary/90 cursor-pointer"
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer hover:bg-primary/90"
                         }`}
                         disabled={disableConversion}
                         onMouseEnter={() => setActiveTooltip("convert")}
@@ -339,9 +374,25 @@ const Convert = () => {
                       >
                         {isLoading ? (
                           <>
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            <svg
+                              className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
                             </svg>
                             Converting...
                           </>
@@ -349,21 +400,22 @@ const Convert = () => {
                           "Convert to PDF"
                         )}
                       </button>
-                      
+
                       {activeTooltip === "convert" && (
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-dark text-white text-xs rounded whitespace-nowrap min-w-[400px] text-center">
-                          This may take up to a minute, depending on your document length
-                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-solid border-t-dark border-t-4 border-x-transparent border-x-4 border-b-0"></div>
+                        <div className="absolute bottom-full left-1/2 mb-2 min-w-[400px] -translate-x-1/2 transform whitespace-nowrap rounded bg-dark px-3 py-1 text-center text-xs text-white">
+                          This may take up to a minute, depending on your
+                          document length
+                          <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-x-4 border-b-0 border-t-4 border-solid border-x-transparent border-t-dark"></div>
                         </div>
                       )}
                     </div>
-                    
+
                     <button
                       type="button"
-                      className={`inline-flex items-center justify-center rounded-md px-5 py-3 text-base font-medium text-primary bg-transparent border border-primary transition duration-300 ease-in-out ${
+                      className={`inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-5 py-3 text-base font-medium text-primary transition duration-300 ease-in-out ${
                         files.length === 0 || isLoading
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-primary/10 cursor-pointer"
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer hover:bg-primary/10"
                       }`}
                       onClick={resetForm}
                       disabled={files.length === 0 || isLoading}
@@ -371,20 +423,20 @@ const Convert = () => {
                       <ListRestart size={20} />
                     </button>
                   </div>
-                  
+
                   {fullCode && (
                     <div className="mt-6 flex justify-center">
                       <div className="relative">
                         <button
                           type="button"
-                          className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-6 py-3 text-base font-medium text-primary hover:bg-primary/10 transition duration-300 ease-in-out"
+                          className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-6 py-3 text-base font-medium text-primary transition duration-300 ease-in-out hover:bg-primary/10"
                           onClick={() => setDropdownOpen(!dropdownOpen)}
                         >
                           Get Source
                         </button>
-                        
+
                         {dropdownOpen && (
-                          <div className="absolute top-full left-0 mt-2 w-64 rounded-md bg-white shadow-lg dark:bg-dark-2 z-10">
+                          <div className="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-white shadow-lg dark:bg-dark-2">
                             <div className="py-1">
                               <button
                                 type="button"
@@ -396,14 +448,19 @@ const Convert = () => {
                               >
                                 <Clipboard className="mr-3 h-5 w-5 text-gray-500" />
                                 <div>
-                                  <div className="font-medium">Copy Snippet</div>
+                                  <div className="font-medium">
+                                    Copy Snippet
+                                  </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    Copies a snippet of the Latex code which makes up your notes
+                                    Copies a snippet of the Latex code which
+                                    makes up your notes
                                   </div>
                                 </div>
-                                <span className="ml-auto text-xs text-gray-500">⌘E</span>
+                                <span className="ml-auto text-xs text-gray-500">
+                                  ⌘E
+                                </span>
                               </button>
-                              
+
                               <button
                                 type="button"
                                 className="flex w-full items-center px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-3"
@@ -414,12 +471,16 @@ const Convert = () => {
                               >
                                 <ClipboardList className="mr-3 h-5 w-5 text-gray-500" />
                                 <div>
-                                  <div className="font-medium">Copy Document</div>
+                                  <div className="font-medium">
+                                    Copy Document
+                                  </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
                                     Copy full Latex Document to clipboard
                                   </div>
                                 </div>
-                                <span className="ml-auto text-xs text-gray-500">⌘⇧E</span>
+                                <span className="ml-auto text-xs text-gray-500">
+                                  ⌘⇧E
+                                </span>
                               </button>
                             </div>
                           </div>
@@ -431,13 +492,13 @@ const Convert = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="w-full px-4 lg:w-5/12 xl:w-6/12">
             <div className="wow fadeInUp" data-wow-delay=".2s">
               {pdfUrl === "/sample.pdf" ? (
                 <div className="relative">
                   <div className="mb-4 text-center">
-                    <span className="inline-block py-2 px-6 bg-primary text-white text-sm font-medium rounded-md">
+                    <span className="inline-block rounded-md bg-primary px-6 py-2 text-sm font-medium text-white">
                       SAMPLE OUTPUT
                     </span>
                   </div>
@@ -446,13 +507,13 @@ const Convert = () => {
                     width="100%"
                     height="800"
                     title="Generated PDF"
-                    className="border rounded-lg shadow-lg dark:border-dark-3"
+                    className="rounded-lg border shadow-lg dark:border-dark-3"
                   />
                 </div>
               ) : (
                 <div className="relative">
                   <div className="mb-4 text-center">
-                    <span className="inline-block py-2 px-6 bg-primary text-white text-sm font-medium rounded-md">
+                    <span className="inline-block rounded-md bg-primary px-6 py-2 text-sm font-medium text-white">
                       YOUR PDF DOCUMENT
                     </span>
                   </div>
@@ -461,7 +522,7 @@ const Convert = () => {
                     width="100%"
                     height="800"
                     title="Generated PDF"
-                    className="border rounded-lg shadow-lg dark:border-dark-3"
+                    className="rounded-lg border shadow-lg dark:border-dark-3"
                   />
                 </div>
               )}
