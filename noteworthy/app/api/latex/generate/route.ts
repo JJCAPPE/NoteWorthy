@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const processType = formData.get("processType")?.toString() || "base";
     console.log("Process type:", processType);
 
-    const { run: runGemini } = await import("./geminiIntegration");
+    const { run: runGemini } = await import("./geminiIntegration2");
     const latexCode: string = await runGemini(filePaths, processType);
 
     let cleanedLatex = latexCode.trim();
