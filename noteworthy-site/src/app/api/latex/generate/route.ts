@@ -3,6 +3,7 @@ import path from "path";
 import { promises as fsPromises } from "fs";
 import os from "os";
 import { ok, err, Result } from "neverthrow";
+import { run } from  "./geminiIntegration"
 
 export const runtime = "nodejs";
 
@@ -27,11 +28,12 @@ export async function POST(request: NextRequest) {
   }
 
   const processType = formData.get("processType")?.toString() || "base";
+  const customPrompt = formData.get("customPrompt")?.toString() || "";
+
   console.log("Process type:", processType);
+  console.log("Custom Prompt:", customPrompt);
 
-  const { run: runGemini } = await import("./geminiIntegration");
-
-  const latexCode = await runGemini(filePaths, processType);
+  const latexCode = await run(filePaths, processType, customPrompt);
 
   if (latexCode.isErr()) {
     const { type, error } = latexCode.error;

@@ -6,6 +6,7 @@ const {
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const dotenv = require("dotenv");
 const { ok, err, Result } = require("neverthrow");
+import mime from "mime-types";
 
 dotenv.config();
 // Load the GEMINI_API_KEY from environment variables
@@ -16,6 +17,25 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 const fileManager = new GoogleAIFileManager(apiKey);
+
+const PROCESS_PROMPTS = {
+  summary: "make a summarised, revision sheet like latex of these notes that is extremely concise and has only core concepts and definitions",
+  expansion: "expand on all the details in the given notes in order for the user to be able to deeply study this content from the output, including all graphs/diagrams that are present and extra ones you deem necessary",
+  base: "make a full transcription of these notes, including all graphs/diagrams that are present"
+};
+
+function getPromptText(processType) {
+  switch (processType) {
+    case "summary":
+      return PROCESS_PROMPTS.summary;
+    case "expansion":
+      return PROCESS_PROMPTS.expansion;
+    case "base":
+      return PROCESS_PROMPTS.base;
+    default:
+      return PROCESS_PROMPTS.base;
+  }
+}
 
 async function uploadToGemini(filePath, mimeType) {
   try {
@@ -36,8 +56,30 @@ async function uploadToGemini(filePath, mimeType) {
   }
 }
 
+async function waitForFilesActive(files) {
+  console.log("Waiting for file processing...");
+  try {
+    for (const file of files) { // files is an array of file objects
+      let currentFile = await fileManager.getFile(file.name);
+      while (currentFile.state === "PROCESSING") {
+        process.stdout.write(".");
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
+        currentFile = await fileManager.getFile(file.name);
+      }
+      if (currentFile.state !== "ACTIVE") {
+        return err(new Error(`File ${currentFile.name} failed to process`));
+      }
+    }
+    console.log("...all files ready\n");
+    return ok(undefined);
+  } catch (error) {
+    return err(error);
+  }
+}
+
+// add option to use gemini-2.5-pro-exp-03-25 for longer compile time but higher quality output
 const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-pro-exp-02-05",
+  model: "gemini-2.0-flash",
 });
 
 const generationConfig = {
@@ -49,11 +91,11 @@ const generationConfig = {
 };
 
 async function run(
-  filePaths = ["uploads/handwritten_note.jpeg"],
-  processType = "base",
+  filePaths,
+  processType,
+  customPrompt,
 ) {
-  try {
-    // Allow a single string or an array of file paths
+  try { 
     if (!Array.isArray(filePaths)) {
       filePaths = [filePaths];
     }
@@ -71,29 +113,7 @@ async function run(
     }
     const uploadedFilesData = filesResult.value.map((result) => result.file);
 
-    let transcriptionText = "";
-    if (processType === "summary") {
-      transcriptionText =
-        "make a summarised, revision sheet like transcription of these notes that is extremely concise and has only core concepts";
-    } else if (processType === "expansion") {
-      transcriptionText =
-        "expand on all the details in the given notes in order for the user to be able to deeply study this content from the output";
-    } else {
-      transcriptionText =
-        "make a full and extended transcription of these notes on linear combinations, including a description of all graphs/diagrams that are present";
-    }
-
-    let promtText = "";
-    if (processType === "summary") {
-      promtText =
-        "make a summarised, revision sheet like latex of these notes that is extremely concise and has only core concepts and definitions";
-    } else if (processType === "expansion") {
-      promtText =
-        "expand on all the details in the given notes in order for the user to be able to deeply study this content from the output , including all graphs/diagrams that are present and extra ones you deem necessary";
-    } else {
-      promtText =
-        "make a full transcription of these notes on linear combinations, including all graphs/diagrams that are present";
-    }
+    let promtText = getPromptText(processType);
 
     const chatSession = model.startChat({
       generationConfig,
@@ -108,16 +128,6 @@ async function run(
                 fileUri: file.uri,
               },
             })),
-            { text: transcriptionText },
-          ],
-        },
-        {
-          role: "model",
-          parts: [
-            {
-              text: "The user wants me to transcribe handwritten notes about linear combinations. I need to carefully read and transcribe the notes, and describe all diagrams and graphs present.",
-            },
-            { text: "Here is the full transcription of the notes..." },
           ],
         },
         {
@@ -127,7 +137,9 @@ async function run(
               text:
                 "now, take these notes and convert them to a latex code to be added to an existing latex document " +
                 promtText +
-                ".\n use this formatting \nfor definitions\n\\dfn{Definiton Title}{\ncontent\n}\nfor notes\n\\nt{\ncontent\n}\nfor theorems\n\\thm{theorem title}{\ncontent\n}\nquestion and answer\n\\qs{Question title}{\nquestion content\n}\n\\sol\nsolution\nexamples\n\\ex{Question or example title}{\ncontent\n}\nalgorithms\n\\begin{algorithm}[H]\n\\KwIn{This is some input}\n\\KwOut{This is some output}\n\\SetAlgoLined\n\\SetNoFillComment\n\\tcc{This is a comment}\n\\vspace{3mm}\nsome code here;\n𝑥\n←\n0\nx←0\n;\n𝑦\n←\n0\ny←0\n;\n\\uIf{\n𝑥\n>\n5\nx>5\n} {\nx is greater than 5 \\tcp*{This is also a comment}\n}\\Else {\nx is less than or equal to 5;\n}\\ForEach{y in 0..5} {\n𝑦\n←\n𝑦\n+\n1\ny←y+1\n;\n}\\For{\n𝑦\n in \n0..5\n} {\n𝑦\n←\n𝑦\n−\n1\ny−1\n;\n}\\While{\n𝑥\n>\n5\nx>5\n}tvi {\n𝑥\n←\n𝑥\n−\n1\nx←x−1\n;\n}\\Return Return something here;\n\\caption{what}\n\\end{algorithm}\nthe commands are already implemented\nalso, never use ** for bold, always use enumerate/itemize\ninsert section and subsection where necessary, but ALWAYS use section*{} and subsection*{}\ncreate all graphs/diagrams with tikz or other packages, do not use float options such as \\begin{figure}[H] EVER \n it is to be compiled without checking, so try to use as little werid formatting and extra pacakges as possible (eg dont use tdplot_main_coords)\nsince this code will be added to an existing document, return the body sections\n",
+                ".\n use this formatting \nfor definitions\n\\dfn{Definiton Title}{\ncontent\n}\nfor notes\n\\nt{\ncontent\n}\nfor theorems\n\\thm{theorem title}{\ncontent\n}\nquestion and answer\n\\qs{Question title}{\nquestion content\n}\n\\sol\nsolution\nexamples\n\\ex{Question or example title}{\ncontent\n}\nalgorithms\n\\begin{algorithm}[H]\n\\KwIn{This is some input}\n\\KwOut{This is some output}\n\\SetAlgoLined\n\\SetNoFillComment\n\\tcc{This is a comment}\n\\vspace{3mm}\nsome code here;\n𝑥\n←\n0\nx←0\n;\n𝑦\n←\n0\ny←0\n;\n\\uIf{\n𝑥\n>\n5\nx>5\n} {\nx is greater than 5 \\tcp*{This is also a comment}\n}\\Else {\nx is less than or equal to 5;\n}\\ForEach{y in 0..5} {\n𝑦\n←\n𝑦\n+\n1\ny←y+1\n;\n}\\For{\n𝑦\n in \n0..5\n} {\n𝑦\n←\n𝑦\n−\n1\ny−1\n;\n}\\While{\n𝑥\n>\n5\nx>5\n}tvi {\n𝑥\n←\n𝑥\n−\n1\nx←x−1\n;\n}\\Return Return something here;\n\\caption{what}\n\\end{algorithm}\nthe commands are already implemented\nalso, never use ** for bold, always use enumerate/itemize\ninsert section and subsection where necessary, but ALWAYS use section*{} and subsection*{}\ncreate all graphs/diagrams with tikz or other packages, do not use float options such as \\begin{figure}[H] EVER \n it is to be compiled without checking using a light distribution of pdflatex, so try to use as little werid formatting and extra pacakges as possible (eg dont use tdplot_main_coords)\n center all figures with \begin{center} \end{center} since this code will be added to an existing document, return the body sections\n" +
+                "the users specifications for how to convert their notes to latex are:\n" +
+                customPrompt,
             },
           ],
         },
@@ -154,16 +166,4 @@ async function run(
   }
 }
 
-if (require.main === module) {
-  run().then((result) => {
-    result.match({
-      ok: (output) => console.log(output),
-      err: (e) => console.error(e),
-    });
-  });
-} else {
-  module.exports = {
-    uploadToGemini,
-    run,
-  };
-}
+export { run };
