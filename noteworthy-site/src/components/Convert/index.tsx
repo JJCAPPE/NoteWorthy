@@ -213,8 +213,9 @@ const Convert = () => {
     isLoading ||
     Boolean(
       pdfMetadata &&
-        pdfMetadata.processType === processType &&
-        pdfMetadata.sourceFiles.length === files.length &&
+      pdfMetadata.processType === processType &&
+      pdfMetadata.sourceFiles.length === files.length &&
+      pdfMetadata.prompt === customPrompt &&
         pdfMetadata.sourceFiles.every((name, i) => files[i].name === name),
     );
 
