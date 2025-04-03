@@ -20,7 +20,7 @@ const menuData: Menu[] = [
     newTab: false,
   },
   {
-    id: 5,
+    id: 4,
     title: "Contact",
     path: "/contact",
     newTab: false,
@@ -33,6 +33,12 @@ const menuData: Menu[] = [
   },
   {
     id: 6,
+    title: "Saved PDFs",
+    path: "/saved",
+    newTab: false,
+  },
+  {
+    id: 7,
     title: "Pages",
     newTab: false,
     submenu: [
