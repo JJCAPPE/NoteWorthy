@@ -48,6 +48,20 @@ model User {
   passwordResetTokenExp DateTime?
   accounts              Account[]
   sessions              Session[]
+  savedPdfs             SavedPdf[]
+}
+
+model SavedPdf {
+  id          String   @id @default(cuid())
+  title       String
+  content     Bytes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  processType String
+  sourceFiles String[]
+  prompt      String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
