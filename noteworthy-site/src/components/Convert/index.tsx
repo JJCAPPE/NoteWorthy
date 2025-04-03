@@ -6,6 +6,7 @@ import {
   Clipboard,
   ClipboardList,
   ListRestart,
+  Save,
 } from "lucide-react";
 
 const tabOptions = [
@@ -46,6 +47,10 @@ const Convert = () => {
   const [fullCode, setFullCode] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [pdfTitle, setPdfTitle] = useState("");
+  const [savingPdf, setSavingPdf] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (files.length === 0) {
@@ -193,6 +198,7 @@ const Convert = () => {
       }
 
       const blob = await pdfResponse.blob();
+      setPdfBlob(blob); // Store the blob for saving later
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       setPdfMetadata({
@@ -205,6 +211,41 @@ const Convert = () => {
       console.error("Error:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSavePdf = async () => {
+    if (!pdfBlob || !pdfTitle.trim()) return;
+    
+    setSavingPdf(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', pdfTitle);
+      formData.append('pdf', pdfBlob);
+      formData.append('processType', pdfMetadata?.processType || 'base');
+      formData.append('sourceFiles', JSON.stringify(pdfMetadata?.sourceFiles || []));
+      formData.append('prompt', pdfMetadata?.prompt || '');
+      
+      const response = await fetch('/api/pdf/save', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error saving PDF:", errorData.error);
+        alert("Failed to save PDF. Please try again.");
+        return;
+      }
+      
+      alert("PDF saved successfully!");
+      setShowSaveDialog(false);
+      setPdfTitle("");
+    } catch (error) {
+      console.error("Error saving PDF:", error);
+      alert("Failed to save PDF. Please try again.");
+    } finally {
+      setSavingPdf(false);
     }
   };
 
@@ -486,6 +527,97 @@ const Convert = () => {
                             </div>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {pdfUrl !== "/sample.pdf" && pdfBlob && (
+                    <div className="mt-6 flex justify-center">
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out hover:bg-primary/90"
+                        onClick={() => setShowSaveDialog(true)}
+                      >
+                        <Save className="mr-2 h-5 w-5" />
+                        Save PDF
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Save PDF Dialog */}
+                  {showSaveDialog && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dark-2">
+                        <h3 className="mb-4 text-xl font-semibold text-dark dark:text-white">
+                          Save PDF
+                        </h3>
+                        <div className="mb-4">
+                          <label
+                            htmlFor="pdf-title"
+                            className="mb-2 block text-sm font-medium text-dark dark:text-white"
+                          >
+                            Enter a title for your PDF
+                          </label>
+                          <input
+                            id="pdf-title"
+                            type="text"
+                            value={pdfTitle}
+                            onChange={(e) => setPdfTitle(e.target.value)}
+                            className="w-full rounded-md border border-[#f1f1f1] bg-transparent px-4 py-2 text-body-color focus:outline-none focus:ring-2 focus:ring-primary dark:border-dark-3 dark:text-dark-6"
+                            placeholder="e.g., Math Notes - Calculus I"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            className="rounded-md border border-primary bg-transparent px-4 py-2 text-sm font-medium text-primary transition duration-300 ease-in-out hover:bg-primary/10"
+                            onClick={() => {
+                              setShowSaveDialog(false);
+                              setPdfTitle("");
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className={`inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition duration-300 ease-in-out ${
+                              !pdfTitle.trim() || savingPdf
+                                ? "cursor-not-allowed opacity-50"
+                                : "cursor-pointer hover:bg-primary/90"
+                            }`}
+                            onClick={handleSavePdf}
+                            disabled={!pdfTitle.trim() || savingPdf}
+                          >
+                            {savingPdf ? (
+                              <>
+                                <svg
+                                  className="-ml-1 mr-2 h-4 w-4 animate-spin text-white"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                Saving...
+                              </>
+                            ) : (
+                              "Save"
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
