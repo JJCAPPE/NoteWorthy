@@ -27,13 +27,33 @@ export async function POST(request: NextRequest) {
     filePaths.push(filePath);
   }
 
-  const processType = formData.get("processType")?.toString() || "base";
+  const processType = formData.get("processType")?.toString();
   const customPrompt = formData.get("customPrompt")?.toString() || "";
+  const modelType = formData.get("modelType")?.toString();
 
   console.log("Process type:", processType);
   console.log("Custom Prompt:", customPrompt);
+  console.log("Model Type:", modelType);
 
-  const latexCode = await run(filePaths, processType, customPrompt);
+  if (!processType) {
+    return NextResponse.json(
+      {
+        type: "INVALID_INPUT",
+        error: "Process type is required.",
+      },
+      { status: 400 },
+    );
+  }
+  if (!modelType) {
+    return NextResponse.json(
+      {
+        type: "INVALID_INPUT",
+        error: "Model type is required.",
+      },
+      { status: 400 },
+    );
+  }
+  const latexCode = await run(filePaths, processType, modelType, customPrompt);
 
   if (latexCode.isErr()) {
     const { type, error } = latexCode.error;
