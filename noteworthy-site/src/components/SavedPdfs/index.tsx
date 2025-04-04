@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Download, Trash, FileX, FileStack, Search, X } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface SavedPdf {
   id: string;
@@ -60,13 +61,20 @@ const SavedPdfs = () => {
   };
 
   const handleCombinePdfs = async () => {
-    if (selectedPdfs.length < 2 || !combineTitle.trim()) {
+    if (selectedPdfs.length < 2) {
+      toast.error("Please select at least 2 PDFs to combine");
+      return;
+    }
+
+    if (!combineTitle.trim()) {
+      toast.error("Please enter a title for the combined PDF");
       return;
     }
 
     setCombining(true);
+
     try {
-      const response = await fetch(`/api/pdf/combine?download=true`, {
+      const response = await fetch("/api/pdf/combine", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -97,20 +105,23 @@ const SavedPdfs = () => {
         setFilteredPdfs(data);
       }
 
+      toast.success("PDFs combined successfully!");
       // Reset the selection
       setSelectedPdfs([]);
       setShowCombineDialog(false);
       setCombineTitle("");
     } catch (error) {
       console.error("Error combining PDFs:", error);
-      alert("Failed to combine PDFs. Please try again.");
+      toast.error("Failed to combine PDFs. Please try again.");
     } finally {
       setCombining(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this PDF?")) {
+    // Use custom confirmation instead of built-in confirm
+    const userConfirmed = window.confirm("Are you sure you want to delete this PDF?");
+    if (!userConfirmed) {
       return;
     }
 
@@ -127,9 +138,10 @@ const SavedPdfs = () => {
       // Filter out the deleted PDF
       setPdfs(pdfs.filter((pdf) => pdf.id !== id));
       setFilteredPdfs(filteredPdfs.filter((pdf) => pdf.id !== id));
+      toast.success("PDF deleted successfully");
     } catch (error) {
       console.error("Error deleting PDF:", error);
-      alert("Failed to delete PDF. Please try again.");
+      toast.error("Failed to delete PDF. Please try again.");
     }
   };
 
