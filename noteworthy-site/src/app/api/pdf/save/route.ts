@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       data: {
         title,
         content: pdfBuffer,
-        userId,
+        userId: userId as string,
         processType,
         sourceFiles,
         prompt,

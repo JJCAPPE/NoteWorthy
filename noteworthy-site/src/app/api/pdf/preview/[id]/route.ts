@@ -5,7 +5,7 @@ import { prisma } from "@/utils/prismaDB";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check if user is authenticated
@@ -26,7 +26,7 @@ export async function GET(
       );
     }
 
-    const pdfId = params.id;
+    const {id: pdfId} = await params;
 
     // Find the PDF in the database
     const pdf = await prisma.savedPdf.findUnique({

@@ -5,9 +5,10 @@ import { prisma } from "@/utils/prismaDB";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
   try {
+    
     // Check if user is authenticated
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -26,7 +27,7 @@ export async function DELETE(
       );
     }
 
-    const pdfId = params.id;
+    const { id: pdfId } = await params;
 
     // Find the PDF to ensure it belongs to the user
     const pdf = await prisma.savedPdf.findUnique({

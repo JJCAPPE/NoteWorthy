@@ -14,12 +14,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const userId = session.user.id as string;
+    // User ID should be available because of our session callback in auth.ts
+    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID not found" },
+        { status: 401 }
+      );
+    }
 
     // Get all PDFs for the user
     const pdfs = await prisma.savedPdf.findMany({
       where: {
-        userId: userId,
+        userId: userId as string,
       },
       select: {
         id: true,
