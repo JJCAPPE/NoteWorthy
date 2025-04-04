@@ -8,6 +8,7 @@ import {
   ListRestart,
   Save,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 const tabOptions = [
   {
@@ -122,8 +123,12 @@ const Convert = () => {
   const copyToClipboard = (code: string) => {
     navigator.clipboard
       .writeText(code)
-      .then(() => alert("Copied to clipboard!"))
-      .catch((err) => console.error("Failed to copy:", err));
+      .then(() => {
+        toast.success("Copied to clipboard!");
+      })
+      .catch(() => {
+        toast.error("Failed to copy to clipboard");
+      });
   };
 
   async function fetchComposedLatex(latexCode: string): Promise<string | ""> {
@@ -215,8 +220,16 @@ const Convert = () => {
   };
 
   const handleSavePdf = async () => {
-    if (!pdfBlob || !pdfTitle.trim()) return;
-    
+    if (!pdfBlob || !pdfTitle.trim()) {
+      toast.error("Please enter a title for the PDF");
+      return;
+    }
+
+    if (!pdfBlob) {
+      toast.error("No PDF content available to save");
+      return;
+    }
+
     setSavingPdf(true);
     try {
       const formData = new FormData();
@@ -232,18 +245,15 @@ const Convert = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error saving PDF:", errorData.error);
-        alert("Failed to save PDF. Please try again.");
-        return;
+        throw new Error("Failed to save PDF");
       }
-      
-      alert("PDF saved successfully!");
+
+      toast.success("PDF saved successfully!");
       setShowSaveDialog(false);
       setPdfTitle("");
     } catch (error) {
       console.error("Error saving PDF:", error);
-      alert("Failed to save PDF. Please try again.");
+      toast.error("Failed to save PDF");
     } finally {
       setSavingPdf(false);
     }
@@ -466,83 +476,87 @@ const Convert = () => {
                     </button>
                   </div>
 
-                  {fullCode && (
-                    <div className="mt-6 flex justify-center">
-                      <div className="relative">
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-6 py-3 text-base font-medium text-primary transition duration-300 ease-in-out hover:bg-primary/10"
-                          onClick={() => setDropdownOpen(!dropdownOpen)}
-                        >
-                          Get Source
-                        </button>
+                  <div className="mt-6 flex justify-center space-x-4">
+                    <button
+                      type="button"
+                      className={`inline-flex items-center justify-center rounded-md px-10 py-3 text-base font-medium transition duration-300 ease-in-out ${
+                        pdfUrl !== "/sample.pdf" && pdfBlob
+                          ? "bg-primary text-white hover:bg-primary/90"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                      }`}
+                      onClick={() => setShowSaveDialog(true)}
+                      disabled={!(pdfUrl !== "/sample.pdf" && pdfBlob)}
+                    >
+                      <Save className="mr-2 h-5 w-5" />
+                      Save PDF
+                    </button>
 
-                        {dropdownOpen && (
-                          <div className="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-white shadow-lg dark:bg-dark-2">
-                            <div className="py-1">
-                              <button
-                                type="button"
-                                className="flex w-full items-center px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-3"
-                                onClick={() => {
-                                  copyToClipboard(latexCode);
-                                  setDropdownOpen(false);
-                                }}
-                              >
-                                <Clipboard className="mr-3 h-5 w-5 text-gray-500" />
-                                <div>
-                                  <div className="font-medium">
-                                    Copy Snippet
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    Copies a snippet of the Latex code which
-                                    makes up your notes
-                                  </div>
-                                </div>
-                                <span className="ml-auto text-xs text-gray-500">
-                                  ⌘E
-                                </span>
-                              </button>
-
-                              <button
-                                type="button"
-                                className="flex w-full items-center px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-3"
-                                onClick={() => {
-                                  copyToClipboard(fullCode);
-                                  setDropdownOpen(false);
-                                }}
-                              >
-                                <ClipboardList className="mr-3 h-5 w-5 text-gray-500" />
-                                <div>
-                                  <div className="font-medium">
-                                    Copy Document
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    Copy full Latex Document to clipboard
-                                  </div>
-                                </div>
-                                <span className="ml-auto text-xs text-gray-500">
-                                  ⌘⇧E
-                                </span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {pdfUrl !== "/sample.pdf" && pdfBlob && (
-                    <div className="mt-6 flex justify-center">
+                    <div className="relative">
                       <button
                         type="button"
-                        className="inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out hover:bg-primary/90"
-                        onClick={() => setShowSaveDialog(true)}
+                        className={`inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium transition duration-300 ease-in-out ${
+                          fullCode
+                            ? "border border-primary bg-transparent text-primary hover:bg-primary/10"
+                            : "border border-gray-300 bg-transparent text-gray-500 cursor-not-allowed dark:border-gray-700 dark:text-gray-400"
+                        }`}
+                        onClick={() => fullCode && setDropdownOpen(!dropdownOpen)}
+                        disabled={!fullCode}
                       >
-                        <Save className="mr-2 h-5 w-5" />
-                        Save PDF
+                        Get Source
                       </button>
+
+                      {dropdownOpen && fullCode && (
+                        <div className="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-white shadow-lg dark:bg-dark-2">
+                          <div className="py-1">
+                            <button
+                              type="button"
+                              className="flex w-full items-center px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-3"
+                              onClick={() => {
+                                copyToClipboard(latexCode);
+                                setDropdownOpen(false);
+                              }}
+                            >
+                              <Clipboard className="mr-3 h-5 w-5 text-gray-500" />
+                              <div>
+                                <div className="font-medium">
+                                  Copy Snippet
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  Copies a snippet of the Latex code which
+                                  makes up your notes
+                                </div>
+                              </div>
+                              <span className="ml-auto text-xs text-gray-500">
+                                ⌘E
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="flex w-full items-center px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-3"
+                              onClick={() => {
+                                copyToClipboard(fullCode);
+                                setDropdownOpen(false);
+                              }}
+                            >
+                              <ClipboardList className="mr-3 h-5 w-5 text-gray-500" />
+                              <div>
+                                <div className="font-medium">
+                                  Copy Document
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  Copy full Latex Document to clipboard
+                                </div>
+                              </div>
+                              <span className="ml-auto text-xs text-gray-500">
+                                ⌘⇧E
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   {/* Save PDF Dialog */}
                   {showSaveDialog && (

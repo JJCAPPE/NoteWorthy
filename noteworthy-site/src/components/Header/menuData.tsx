@@ -33,11 +33,11 @@ const menuData: Menu[] = [
   },
   {
     id: 6,
-    title: "Saved PDFs",
+    title: "Saved",
     path: "/saved",
     newTab: false,
   },
-  {
+  /* {
     id: 7,
     title: "Pages",
     newTab: false,
@@ -73,6 +73,6 @@ const menuData: Menu[] = [
         newTab: false,
       },
     ],
-  },
+  }, */
 ];
 export default menuData;
