@@ -1,13 +1,8 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
-import {
-  CameraIcon,
-  Clipboard,
-  ClipboardList,
-  ListRestart,
-  Save,
-} from "lucide-react";
+import { Clipboard, ClipboardList, ListRestart, Save } from "lucide-react";
 import toast from "react-hot-toast";
 
 const tabOptions = [
@@ -28,6 +23,24 @@ const tabOptions = [
   },
 ];
 
+const modelOptions = [
+  {
+    key: "regular",
+    label: "Regular",
+    tooltipContent: "Standard model for most notes",
+  },
+  {
+    key: "fast",
+    label: "Fast",
+    tooltipContent: "Faster model for quick generation",
+  },
+  {
+    key: "pro",
+    label: "Pro",
+    tooltipContent: "Reasoning model for higher quality output, high latency",
+  },
+];
+
 interface PdfMetadata {
   sourceFiles: string[]; // File names of source images
   processType: string; // Type of processing used
@@ -36,14 +49,24 @@ interface PdfMetadata {
 }
 
 const Convert = () => {
+  const { data: session, status } = useSession();
   const [files, setFiles] = useState<File[]>([]);
   const [customPrompt, setCustomPrompt] = useState("");
+  const [showAuthTooltip, setShowAuthTooltip] = useState(false);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debug log when component mounts/updates
+  useEffect(() => {
+    console.log("Session status:", status);
+    console.log("Is user authenticated:", !!session);
+  }, [session, status]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState("/sample.pdf");
   const [pdfMetadata, setPdfMetadata] = useState<PdfMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [processType, setProcessType] = useState("base");
+  const [modelType, setModelType] = useState("regular");
   const [latexCode, setLatexCode] = useState("");
   const [fullCode, setFullCode] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -164,6 +187,8 @@ const Convert = () => {
       const latexFormData = new FormData();
       files.forEach((file) => latexFormData.append("noteImage", file));
       latexFormData.append("processType", processType);
+      latexFormData.append("modelType", modelType);
+      latexFormData.append("customPrompt", customPrompt);
 
       const latexResponse = await fetch("/api/latex/generate", {
         method: "POST",
@@ -233,17 +258,20 @@ const Convert = () => {
     setSavingPdf(true);
     try {
       const formData = new FormData();
-      formData.append('title', pdfTitle);
-      formData.append('pdf', pdfBlob);
-      formData.append('processType', pdfMetadata?.processType || 'base');
-      formData.append('sourceFiles', JSON.stringify(pdfMetadata?.sourceFiles || []));
-      formData.append('prompt', pdfMetadata?.prompt || '');
-      
-      const response = await fetch('/api/pdf/save', {
-        method: 'POST',
+      formData.append("title", pdfTitle);
+      formData.append("pdf", pdfBlob);
+      formData.append("processType", pdfMetadata?.processType || "base");
+      formData.append(
+        "sourceFiles",
+        JSON.stringify(pdfMetadata?.sourceFiles || []),
+      );
+      formData.append("prompt", pdfMetadata?.prompt || "");
+
+      const response = await fetch("/api/pdf/save", {
+        method: "POST",
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error("Failed to save PDF");
       }
@@ -264,9 +292,9 @@ const Convert = () => {
     isLoading ||
     Boolean(
       pdfMetadata &&
-      pdfMetadata.processType === processType &&
-      pdfMetadata.sourceFiles.length === files.length &&
-      pdfMetadata.prompt === customPrompt &&
+        pdfMetadata.processType === processType &&
+        pdfMetadata.sourceFiles.length === files.length &&
+        pdfMetadata.prompt === customPrompt &&
         pdfMetadata.sourceFiles.every((name, i) => files[i].name === name),
     );
 
@@ -295,7 +323,7 @@ const Convert = () => {
                   CONVERT YOUR HANDWRITTEN NOTES
                 </span>
                 <h2 className="text-[32px] font-bold leading-tight text-dark dark:text-white sm:text-[40px] md:text-[44px]">
-                   Notes to PDF
+                  Notes to PDF
                 </h2>
                 <p className="mx-auto mt-4 max-w-[600px] text-base text-body-color dark:text-dark-6">
                   Upload your handwritten notes and convert them into
@@ -398,6 +426,34 @@ const Convert = () => {
                     </div>
                   </div>
 
+                  <div className="mb-2 flex w-full justify-center border-b border-[#f1f1f1] dark:border-dark-3">
+                    <div className="flex">
+                      {modelOptions.map((tab) => (
+                        <div key={tab.key} className="relative">
+                          <button
+                            type="button"
+                            className={`px-6 py-3 text-base font-medium ${
+                              modelType === tab.key
+                                ? "border-b-2 border-primary text-primary"
+                                : "text-body-color hover:text-primary dark:text-dark-6"
+                            }`}
+                            onClick={() => setModelType(tab.key)}
+                            onMouseEnter={() => setActiveTooltip(tab.key)}
+                            onMouseLeave={() => setActiveTooltip(null)}
+                          >
+                            {tab.label}
+                          </button>
+                          {activeTooltip === tab.key && (
+                            <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded bg-dark px-3 py-1 text-xs text-white">
+                              {tab.tooltipContent}
+                              <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-x-4 border-b-0 border-t-4 border-solid border-x-transparent border-t-dark"></div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="mb-2 flex w-full justify-center">
                     <textarea
                       value={customPrompt}
@@ -455,8 +511,7 @@ const Convert = () => {
 
                       {activeTooltip === "convert" && (
                         <div className="absolute bottom-full left-1/2 mb-2 min-w-[400px] -translate-x-1/2 transform whitespace-nowrap rounded bg-dark px-3 py-1 text-center text-xs text-white">
-                          This may take up to a minute, depending on your
-                          document length
+                          This may take up to a minute, depending on your document length
                           <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-x-4 border-b-0 border-t-4 border-solid border-x-transparent border-t-dark"></div>
                         </div>
                       )}
@@ -477,19 +532,37 @@ const Convert = () => {
                   </div>
 
                   <div className="mt-6 flex justify-center space-x-4">
-                    <button
-                      type="button"
-                      className={`inline-flex items-center justify-center rounded-md px-10 py-3 text-base font-medium transition duration-300 ease-in-out ${
-                        pdfUrl !== "/sample.pdf" && pdfBlob
-                          ? "bg-primary text-white hover:bg-primary/90"
-                          : "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                      }`}
-                      onClick={() => setShowSaveDialog(true)}
-                      disabled={!(pdfUrl !== "/sample.pdf" && pdfBlob)}
-                    >
-                      <Save className="mr-2 h-5 w-5" />
-                      Save PDF
-                    </button>
+                    <div className="group relative inline-block">
+                      <button
+                        type="button"
+                        className={`inline-flex items-center justify-center rounded-md px-10 py-3 text-base font-medium transition duration-300 ease-in-out ${
+                          pdfUrl !== "/sample.pdf" && pdfBlob
+                            ? session
+                              ? "bg-primary text-white hover:bg-primary/90"
+                              : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                            : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                        }`}
+                        onClick={() =>
+                          session &&
+                          pdfUrl !== "/sample.pdf" &&
+                          pdfBlob &&
+                          setShowSaveDialog(true)
+                        }
+                        disabled={
+                          !session || !(pdfUrl !== "/sample.pdf" && pdfBlob)
+                        }
+                      >
+                        <Save className="mr-2 h-5 w-5" />
+                        Save PDF
+                      </button>
+
+                      {!session && (
+                        <div className="pointer-events-none invisible absolute bottom-full left-1/2 mb-2 w-48 -translate-x-1/2 rounded-md bg-dark px-3 py-2 text-center text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:visible group-hover:opacity-100 dark:bg-gray-800">
+                          You need to be signed in to save PDFs
+                          <div className="absolute left-1/2 top-full -mt-1 -translate-x-1/2 border-[6px] border-solid border-transparent border-t-dark dark:border-t-gray-800"></div>
+                        </div>
+                      )}
+                    </div>
 
                     <div className="relative">
                       <button
@@ -497,16 +570,18 @@ const Convert = () => {
                         className={`inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium transition duration-300 ease-in-out ${
                           fullCode
                             ? "border border-primary bg-transparent text-primary hover:bg-primary/10"
-                            : "border border-gray-300 bg-transparent text-gray-500 cursor-not-allowed dark:border-gray-700 dark:text-gray-400"
+                            : "cursor-not-allowed border border-gray-300 bg-transparent text-gray-500 dark:border-gray-700 dark:text-gray-400"
                         }`}
-                        onClick={() => fullCode && setDropdownOpen(!dropdownOpen)}
+                        onClick={() =>
+                          fullCode && setDropdownOpen(!dropdownOpen)
+                        }
                         disabled={!fullCode}
                       >
                         Get Source
                       </button>
 
                       {dropdownOpen && fullCode && (
-                        <div className="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-white shadow-lg dark:bg-dark-2">
+                        <div className="absolute left-0 -bottom-1 z-50 translate-y-full mt-1 w-64 rounded-md bg-white shadow-lg dark:bg-dark-2">
                           <div className="py-1">
                             <button
                               type="button"
@@ -518,12 +593,9 @@ const Convert = () => {
                             >
                               <Clipboard className="mr-3 h-5 w-5 text-gray-500" />
                               <div>
-                                <div className="font-medium">
-                                  Copy Snippet
-                                </div>
+                                <div className="font-medium">Copy Snippet</div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  Copies a snippet of the Latex code which
-                                  makes up your notes
+                                  Copies LateX code snippet
                                 </div>
                               </div>
                               <span className="ml-auto text-xs text-gray-500">
@@ -541,11 +613,9 @@ const Convert = () => {
                             >
                               <ClipboardList className="mr-3 h-5 w-5 text-gray-500" />
                               <div>
-                                <div className="font-medium">
-                                  Copy Document
-                                </div>
+                                <div className="font-medium">Copy Document</div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  Copy full Latex Document to clipboard
+                                  Copy full Latex Document
                                 </div>
                               </div>
                               <span className="ml-auto text-xs text-gray-500">

@@ -37,6 +37,18 @@ function getPromptText(processType) {
   }
 }
 
+function getModel(model) {
+  switch (model) {
+    case "regular":
+      return "gemini-2.0-flash";
+    case "fast":
+      return "gemini-2.0-flash-lite";
+    case "pro":
+      return "gemini-2.5-pro-exp-03-25";
+    
+  }
+}
+
 async function uploadToGemini(filePath, mimeType) {
   try {
     const uploadResult = await fileManager.uploadFile(filePath, {
@@ -78,9 +90,7 @@ async function waitForFilesActive(files) {
 }
 
 // add option to use gemini-2.5-pro-exp-03-25 for longer compile time but higher quality output
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash",
-});
+
 
 const generationConfig = {
   temperature: 0.7,
@@ -93,14 +103,13 @@ const generationConfig = {
 async function run(
   filePaths,
   processType,
+  modelType,
   customPrompt,
 ) {
   try { 
     if (!Array.isArray(filePaths)) {
       filePaths = [filePaths];
     }
-
-    // Upload all files concurrently and combine the results
     const uploadResults = await Promise.all(
       filePaths.map((filePath) => uploadToGemini(filePath, "image/jpeg")),
     );
@@ -115,13 +124,16 @@ async function run(
 
     let promtText = getPromptText(processType);
 
+    const model = genAI.getGenerativeModel({
+      model: getModel(modelType),
+    });
+
     const chatSession = model.startChat({
       generationConfig,
       history: [
         {
           role: "user",
           parts: [
-            // Include each uploaded file's metadata
             ...uploadedFilesData.map((file) => ({
               fileData: {
                 mimeType: file.mimeType,
