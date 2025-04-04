@@ -256,6 +256,38 @@ const Header = () => {
                       ),
                     )}
                   </ul>
+                  
+                  {/* Mobile Auth Buttons */}
+                  <div className="mt-4 flex flex-col space-y-3 border-t border-stroke pt-4 dark:border-dark-3 lg:hidden">
+                    {session?.user ? (
+                      <>
+                        <p className="px-1 text-base font-medium text-dark dark:text-white">
+                          {session?.user?.name}
+                        </p>
+                        <button
+                          onClick={() => signOut()}
+                          className="rounded-lg bg-primary px-6 py-2 text-base font-medium text-white duration-300 ease-in-out hover:bg-opacity-90"
+                        >
+                          Sign Out
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/auth/signin"
+                          className="rounded-lg border border-stroke px-6 py-2 text-center text-base font-medium text-dark hover:text-primary dark:border-dark-3 dark:text-white"
+                        >
+                          Sign In
+                        </Link>
+                        <Link
+                          href="/auth/signup"
+                          className="rounded-lg bg-primary px-6 py-2 text-center text-base font-medium text-white duration-300 ease-in-out hover:bg-opacity-90"
+                        >
+                          Sign Up
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 </nav>
               </div>
               <div className="hidden items-center justify-end pr-16 sm:flex lg:pr-0">
