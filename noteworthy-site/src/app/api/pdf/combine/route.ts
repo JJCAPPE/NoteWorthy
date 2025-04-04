@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // User ID should be available because of our session callback in auth.ts
     const userId = session.user.id;
     if (!userId) {
       return NextResponse.json(
