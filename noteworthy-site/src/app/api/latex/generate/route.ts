@@ -6,6 +6,17 @@ import { ok, err, Result } from "neverthrow";
 import { run } from  "./geminiIntegration"
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes in seconds
+
+// This tells Next.js not to use the default body parser
+// so we can handle the request body manually with no size limit
+export const config = {
+  api: {
+    // Disable Next.js's default body parser
+    bodyParser: false,
+  },
+}
 
 export async function POST(request: NextRequest) {
   const uploadDir = path.join(os.tmpdir(), "uploads", "temp");
