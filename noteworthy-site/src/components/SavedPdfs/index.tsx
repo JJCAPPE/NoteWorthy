@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { Download, Trash, FileX, FileStack, Search, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
+import ManageSubscription from "../Subscription/ManageSubscription";
 
 interface SavedPdf {
   id: string;
@@ -10,7 +12,23 @@ interface SavedPdf {
   processType: string;
 }
 
+// Function to check if a user has premium status
+const checkPremiumStatus = async () => {
+  try {
+    const response = await fetch('/api/user/subscription-status');
+    if (!response.ok) {
+      throw new Error('Failed to fetch subscription status');
+    }
+    const data = await response.json();
+    return data.isPremium;
+  } catch (error) {
+    console.error('Error checking premium status:', error);
+    return false;
+  }
+};
+
 const SavedPdfs = () => {
+  const { data: session } = useSession();
   const [pdfs, setPdfs] = useState<SavedPdf[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +38,8 @@ const SavedPdfs = () => {
   const [combining, setCombining] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredPdfs, setFilteredPdfs] = useState<SavedPdf[]>([]);
+  const [isPremium, setIsPremium] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   // Fetch the saved PDFs when the component mounts
   useEffect(() => {
@@ -43,6 +63,28 @@ const SavedPdfs = () => {
 
     fetchPdfs();
   }, []);
+  
+  // Check subscription status when session is available
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      if (!session?.user?.id) {
+        setIsPremium(false);
+        setSubscriptionLoading(false);
+        return;
+      }
+      
+      try {
+        const premium = await checkPremiumStatus();
+        setIsPremium(premium);
+      } catch (error) {
+        console.error('Error checking premium status:', error);
+      } finally {
+        setSubscriptionLoading(false);
+      }
+    };
+    
+    fetchSubscriptionStatus();
+  }, [session]);
 
   // Filter PDFs based on search term
   useEffect(() => {
@@ -168,6 +210,13 @@ const SavedPdfs = () => {
           <p className="mx-auto mt-4 max-w-[600px] text-base text-body-color dark:text-dark-6">
             View, download, and combine your saved PDF documents.
           </p>
+          
+          {/* Subscription Status & Management */}
+          {!subscriptionLoading && (
+            <div className="mt-6">
+              <ManageSubscription isPremium={isPremium} />
+            </div>
+          )}
         </div>
 
         <div className="wow fadeInUp rounded-lg bg-white p-8 shadow-testimonial dark:bg-dark-2 dark:shadow-none">
