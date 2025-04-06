@@ -41,8 +41,59 @@ export async function POST(request: NextRequest) {
   let subscription: Stripe.Subscription;
   let status: string;
 
+  // Log all incoming events for debugging
+  console.log('========================================');
+  console.log(`Received Stripe event type: ${event.type}`);
+  console.log('Event data:', JSON.stringify(event.data.object, null, 2).substring(0, 500) + '...');
+  console.log('========================================');
+  
   // Handle the event
   switch (event.type) {
+    case "checkout.session.completed":
+      // Handle one-time payment for lifetime plan
+      const session = event.data.object as Stripe.Checkout.Session;
+      
+      // Check if this is a one-time payment for the lifetime plan
+      if (session.mode === 'payment') {
+        console.log('One-time payment completed:', session.id);
+        
+        // Get customer ID and retrieve customer details
+        const customerId = session.customer as string;
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer.deleted) {
+          console.log('Customer was deleted');
+          break;
+        }
+        
+        // Get the user ID from customer metadata
+        const userId = customer.metadata.userId;
+        if (!userId) {
+          console.log('No userId in customer metadata!');
+          break;
+        }
+        
+        try {
+          // Update the user with lifetime access
+          const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+              subscriptionId: `lifetime_${session.id}`, // Custom ID for lifetime plans
+              subscriptionStatus: 'active',
+              subscriptionPlan: 'Lifetime Premium',
+            },
+          });
+          
+          console.log(`User ${userId} upgraded to lifetime plan:`, {
+            subscriptionId: updatedUser.subscriptionId,
+            subscriptionStatus: updatedUser.subscriptionStatus,
+            subscriptionPlan: updatedUser.subscriptionPlan
+          });
+        } catch (error) {
+          console.error(`Failed to update user ${userId} for lifetime plan:`, error);
+        }
+      }
+      break;
+      
     case "customer.subscription.created":
     case "customer.subscription.updated":
     case "customer.subscription.deleted":

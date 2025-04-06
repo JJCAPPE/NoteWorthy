@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { Clipboard, ClipboardList, ListRestart, Save } from "lucide-react";
+import { Clipboard, ClipboardList, ListRestart, Save, Lock } from "lucide-react";
+import { usePremiumStatus } from "@/utils/subscriptionCheck";
 import toast from "react-hot-toast";
 
 const tabOptions = [
@@ -50,6 +51,7 @@ interface PdfMetadata {
 
 const Convert = () => {
   const { data: session, status } = useSession();
+  const { isPremium, isLoading: isPremiumLoading } = usePremiumStatus(session);
   const [files, setFiles] = useState<File[]>([]);
   const [customPrompt, setCustomPrompt] = useState("");
   const [showAuthTooltip, setShowAuthTooltip] = useState(false);
@@ -182,12 +184,15 @@ const Convert = () => {
     if (files.length === 0) return;
     setIsLoading(true);
 
+    // Ensure non-premium users can only use the regular model
+    const actualModelType = (!isPremium && modelType !== "regular") ? "regular" : modelType;
+    
     try {
       // Step 1: Generate LaTeX
       const latexFormData = new FormData();
       files.forEach((file) => latexFormData.append("noteImage", file));
       latexFormData.append("processType", processType);
-      latexFormData.append("modelType", modelType);
+      latexFormData.append("modelType", actualModelType);
       latexFormData.append("customPrompt", customPrompt);
 
       const latexResponse = await fetch("/api/latex/generate", {
@@ -427,30 +432,50 @@ const Convert = () => {
                   </div>
 
                   <div className="mb-2 flex w-full justify-center border-b border-[#f1f1f1] dark:border-dark-3">
-                    <div className="flex">
-                      {modelOptions.map((tab) => (
-                        <div key={tab.key} className="relative">
-                          <button
-                            type="button"
-                            className={`px-6 py-3 text-base font-medium ${
-                              modelType === tab.key
-                                ? "border-b-2 border-primary text-primary"
-                                : "text-body-color hover:text-primary dark:text-dark-6"
-                            }`}
-                            onClick={() => setModelType(tab.key)}
-                            onMouseEnter={() => setActiveTooltip(tab.key)}
-                            onMouseLeave={() => setActiveTooltip(null)}
-                          >
-                            {tab.label}
-                          </button>
-                          {activeTooltip === tab.key && (
-                            <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded bg-dark px-3 py-1 text-xs text-white">
-                              {tab.tooltipContent}
-                              <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-x-4 border-b-0 border-t-4 border-solid border-x-transparent border-t-dark"></div>
-                            </div>
-                          )}
+                    <div className="flex relative">
+                      {modelOptions.map((tab) => {
+                        const isPremiumModel = tab.key !== "regular";
+                        const isDisabled = isPremiumModel && !isPremium;
+                        return (
+                          <div key={tab.key} className="relative">
+                            <button
+                              type="button"
+                              className={`px-6 py-3 text-base font-medium ${
+                                modelType === tab.key
+                                  ? "border-b-2 border-primary text-primary"
+                                  : isDisabled
+                                  ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                                  : "text-body-color hover:text-primary dark:text-dark-6"
+                              }`}
+                              onClick={() => {
+                                if (!isDisabled) {
+                                  setModelType(tab.key);
+                                } else {
+                                  toast.error("Premium subscription required for advanced models");
+                                }
+                              }}
+                              onMouseEnter={() => setActiveTooltip(tab.key)}
+                              onMouseLeave={() => setActiveTooltip(null)}
+                            >
+                              {tab.label}
+                              {isDisabled && <Lock className="inline-block ml-1" size={14} />}
+                            </button>
+                            {activeTooltip === tab.key && (
+                              <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded bg-dark px-3 py-1 text-xs text-white">
+                                {isDisabled
+                                  ? `${tab.tooltipContent} (Premium subscription required)`
+                                  : tab.tooltipContent}
+                                <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-x-4 border-b-0 border-t-4 border-solid border-x-transparent border-t-dark"></div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {!isPremium && (
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-gray-500 dark:text-gray-400">
+                          Advanced models require a premium subscription
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
 

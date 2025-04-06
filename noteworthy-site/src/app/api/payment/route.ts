@@ -4,6 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/utils/auth";
 import { prisma } from "@/utils/prismaDB";
 
+// Import the price IDs for checking lifetime subscription
+import { pricingData } from "@/stripe/pricingData";
+
 export async function POST(request: NextRequest) {
   try {
     // Check required environment variables
@@ -80,8 +83,24 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Determine if this is a one-time payment or subscription
+    // First, get the price details to check if it's a one-time payment
+    const price = await stripe.prices.retrieve(priceId);
+    console.log('Price details from Stripe:', {
+      id: price.id,
+      nickname: price.nickname,
+      type: price.type,
+      recurring: price.recurring
+    });
+    
+    // Check if this is the lifetime plan price ID
+    // More reliable to check based on the price type from Stripe
+    const isLifetimePayment = price.type === 'one_time' || 
+                          (price.recurring === null) || 
+                          pricingData.some(p => p.id === priceId && p.isLifetime);
+    console.log(`Creating ${isLifetimePayment ? 'one-time payment' : 'subscription'} checkout session for user:`, userId);
+    
     // Create checkout session with metadata to help with webhook processing
-    console.log('Creating checkout session for user:', userId);
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
@@ -91,11 +110,12 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      mode: 'subscription',
+      mode: isLifetimePayment ? 'payment' : 'subscription',
       success_url: `${process.env.SITE_URL}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.SITE_URL}/pricing?canceled=true`,
       metadata: {
         userId: userId, // Add user ID to metadata for webhook processing
+        isLifetime: isLifetimePayment ? 'true' : 'false',
       },
     });
     

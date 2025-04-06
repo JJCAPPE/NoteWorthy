@@ -25,8 +25,10 @@ const PricingBox = ({
   
   const isCurrentPlan = currentPlan?.toLowerCase() === product.nickname.toLowerCase();
   const isPremiumPlan = product.nickname.toLowerCase() === "premium";
+  const isLifetimePlan = product.isLifetime === true;
   const isFreePlan = product.nickname.toLowerCase() === "free";
   const hasActiveSubscription = subscriptionStatus === "active";
+  const hasLifetimeAccess = currentPlan?.toLowerCase() === "lifetime premium";
   
   // Handle subscription purchase
   const handleSubscription = async (e: any) => {
@@ -36,7 +38,7 @@ const PricingBox = ({
     if (!session) {
       // Redirect to login page if not authenticated
       toast.error('You need to be signed in to purchase a subscription');
-      router.push('/auth/signin');
+      router.push('/signin');
       return;
     }
     
@@ -67,6 +69,7 @@ const PricingBox = ({
     
     if (!session) {
       toast.error('You need to be signed in to cancel your subscription');
+      router.push('/signin');
       return;
     }
     
@@ -134,7 +137,7 @@ const PricingBox = ({
           </span>
           <span className="text-base font-normal text-body-color dark:text-dark-6">
             {" "}
-            {product.unit_amount > 0 ? "Per Month" : ""}
+            {product.unit_amount > 0 ? (product.billingInterval === "month" ? "Per Month" : "One-time") : ""}
           </span>
         </h2>
 
@@ -161,7 +164,7 @@ const PricingBox = ({
           ) : (
             <>
               {/* For Premium plan when user is on Free plan */}
-              {isPremiumPlan && !isCurrentPlan && (
+              {isPremiumPlan && !isCurrentPlan && !hasLifetimeAccess && (
                 <button
                   onClick={handleSubscription}
                   disabled={isLoading}
@@ -171,8 +174,19 @@ const PricingBox = ({
                 </button>
               )}
               
+              {/* For Lifetime Premium plan */}
+              {isLifetimePlan && !isCurrentPlan && !hasLifetimeAccess && (
+                <button
+                  onClick={handleSubscription}
+                  disabled={isLoading}
+                  className="inline-block w-full rounded-md bg-primary px-7 py-3 text-center text-base font-medium text-white transition duration-300 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Loading...' : 'Get Lifetime Access'}
+                </button>
+              )}
+              
               {/* For Free plan when user is on Premium plan */}
-              {isFreePlan && hasActiveSubscription && !isCurrentPlan && (
+              {isFreePlan && hasActiveSubscription && !isCurrentPlan && !hasLifetimeAccess && (
                 <button
                   onClick={handleCancelSubscription}
                   disabled={isLoading}
@@ -182,8 +196,18 @@ const PricingBox = ({
                 </button>
               )}
               
+              {/* For plans when user has lifetime access - disabled */}
+              {hasLifetimeAccess && !isLifetimePlan && (
+                <button
+                  disabled
+                  className="inline-block w-full rounded-md bg-gray-400 px-7 py-3 text-center text-base font-medium text-white transition duration-300 cursor-not-allowed"
+                >
+                  Lifetime Access Active
+                </button>
+              )}
+              
               {/* Current plan */}
-              {isCurrentPlan && hasActiveSubscription && (
+              {isCurrentPlan && (hasActiveSubscription || isLifetimePlan) && (
                 <button
                   disabled
                   className="inline-block w-full rounded-md bg-green-500 px-7 py-3 text-center text-base font-medium text-white transition duration-300 cursor-not-allowed"
