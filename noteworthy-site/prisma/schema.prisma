@@ -49,6 +49,10 @@ model User {
   accounts              Account[]
   sessions              Session[]
   savedPdfs             SavedPdf[]
+  stripeCustomerId      String?   @unique
+  subscriptionId        String?   @unique
+  subscriptionStatus    String?   // 'active', 'canceled', 'past_due', etc.
+  subscriptionPlan      String?   // 'free', 'premium', etc.
 }
 
 model SavedPdf {

@@ -8,20 +8,20 @@ export const pricingData: Price[] = [
     offers: [
       "Unlimted Uses",
       "Download PDF",
-      "Download Latex",
+      "Copy Latex source code",
       "Adjust Note Size",
       "OpenSource Code"
     ],
   },
   {
-    id: "price_1NQk55LtGdPVhGLefU8AHqHr",
+    id: "price_1RAHrYPSwWkKgzUlwTnwb4pi",
     unit_amount: 10 * 100,
     nickname: "Premium",
     offers: [
       "All free features",
       "Save your PDF's + Latex on cloud",
       "Prompt NoteWorthy to fine tune generation",
-      "Select bewtween different models",
+      "Select between different models",
       "24/7 Support",
     ],
   },
