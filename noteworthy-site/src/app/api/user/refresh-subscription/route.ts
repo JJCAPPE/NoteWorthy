@@ -35,6 +35,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
     
+    // Check if user has a lifetime subscription first
+    if (user.subscriptionPlan === 'Lifetime Premium' && 
+        user.subscriptionStatus === 'active' && 
+        user.subscriptionId?.startsWith('lifetime_')) {
+      
+      console.log('User has a lifetime subscription, no need to check Stripe');
+      return NextResponse.json({
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionPlan: user.subscriptionPlan,
+        subscriptionId: user.subscriptionId
+      });
+    }
+    
     // If no customer ID, no subscription to check
     if (!user.stripeCustomerId) {
       return NextResponse.json({
