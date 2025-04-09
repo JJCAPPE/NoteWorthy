@@ -54,7 +54,7 @@ const Header = () => {
       >
         <div className="container">
           <div className="relative -mx-4 flex items-center justify-between">
-            <div className="w-60 max-w-full px-2 ml-4">
+            <div className="ml-4 w-60 max-w-full px-2">
               <Link
                 href="/"
                 className={`navbar-logo block w-full ${
@@ -256,7 +256,7 @@ const Header = () => {
                       ),
                     )}
                   </ul>
-                  
+
                   {/* Mobile Auth Buttons */}
                   <div className="mt-4 flex flex-col space-y-3 border-t border-stroke pt-4 dark:border-dark-3 lg:hidden">
                     {session?.user ? (
@@ -265,7 +265,10 @@ const Header = () => {
                           {session?.user?.name}
                         </p>
                         <button
-                          onClick={() => signOut()}
+                          onClick={() => {
+                            signOut(),
+                            setNavbarOpen(false)
+                          }}
                           className="rounded-lg bg-primary px-6 py-2 text-base font-medium text-white duration-300 ease-in-out hover:bg-opacity-90"
                         >
                           Sign Out
@@ -274,13 +277,15 @@ const Header = () => {
                     ) : (
                       <>
                         <Link
-                          href="/auth/signin"
+                          onClick={() => setNavbarOpen(false)}
+                          href="/signin"
                           className="rounded-lg border border-stroke px-6 py-2 text-center text-base font-medium text-dark hover:text-primary dark:border-dark-3 dark:text-white"
                         >
                           Sign In
                         </Link>
                         <Link
-                          href="/auth/signup"
+                          onClick={() => setNavbarOpen(false)}
+                          href="/signup"
                           className="rounded-lg bg-primary px-6 py-2 text-center text-base font-medium text-white duration-300 ease-in-out hover:bg-opacity-90"
                         >
                           Sign Up
@@ -322,7 +327,9 @@ const Header = () => {
                   <>
                     <p
                       className={`loginBtn px-7 py-3 text-base font-medium ${
-                        !sticky && pathUrl === "/" ? "text-white" : "text-dark dark:text-white"
+                        !sticky && pathUrl === "/"
+                          ? "text-white"
+                          : "text-dark dark:text-white"
                       }`}
                     >
                       {session?.user?.name}
