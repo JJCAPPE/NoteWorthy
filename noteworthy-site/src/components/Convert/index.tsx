@@ -409,8 +409,8 @@ const Convert = () => {
                           <button
                             type="button"
                             className={`px-6 py-3 text-base font-medium ${processType === tab.key
-                                ? "border-b-2 border-primary text-primary"
-                                : "text-body-color hover:text-primary dark:text-dark-6"
+                              ? "border-b-2 border-primary text-primary"
+                              : "text-body-color hover:text-primary dark:text-dark-6"
                               }`}
                             onClick={() => setProcessType(tab.key)}
                             onMouseEnter={() => setActiveTooltip(tab.key)}
@@ -439,10 +439,10 @@ const Convert = () => {
                             <button
                               type="button"
                               className={`px-6 py-3 text-base font-medium ${modelType === tab.key
-                                  ? "border-b-2 border-primary text-primary"
-                                  : isDisabled
-                                    ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                                    : "text-body-color hover:text-primary dark:text-dark-6"
+                                ? "border-b-2 border-primary text-primary"
+                                : isDisabled
+                                  ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                                  : "text-body-color hover:text-primary dark:text-dark-6"
                                 }`}
                               onClick={() => {
                                 if (!isDisabled) {
@@ -494,8 +494,8 @@ const Convert = () => {
                       <button
                         type="submit"
                         className={`inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out ${disableConversion
-                            ? "cursor-not-allowed opacity-50"
-                            : "cursor-pointer hover:bg-primary/90"
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer hover:bg-primary/90"
                           }`}
                         disabled={disableConversion}
                         onMouseEnter={() => setActiveTooltip("convert")}
@@ -541,8 +541,8 @@ const Convert = () => {
                     <button
                       type="button"
                       className={`inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-5 py-3 text-base font-medium text-primary transition duration-300 ease-in-out ${files.length === 0 || isLoading
-                          ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer hover:bg-primary/10"
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer hover:bg-primary/10"
                         }`}
                       onClick={resetForm}
                       disabled={files.length === 0 || isLoading}
@@ -556,10 +556,10 @@ const Convert = () => {
                       <button
                         type="button"
                         className={`inline-flex items-center justify-center rounded-md px-10 py-3 text-base font-medium transition duration-300 ease-in-out ${pdfUrl !== "/sample.pdf" && pdfBlob
-                            ? session
-                              ? "bg-primary text-white hover:bg-primary/90"
-                              : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                          ? session
+                            ? "bg-primary text-white hover:bg-primary/90"
                             : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                          : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
                           }`}
                         onClick={() =>
                           session &&
@@ -582,13 +582,12 @@ const Convert = () => {
                         </div>
                       )}
                     </div>
-                    // TODO: make this go away on click off
                     <div className="relative">
                       <button
                         type="button"
                         className={`inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium transition duration-300 ease-in-out ${fullCode
-                            ? "border border-primary bg-transparent text-primary hover:bg-primary/10"
-                            : "cursor-not-allowed border border-gray-300 bg-transparent text-gray-500 dark:border-gray-700 dark:text-gray-400"
+                          ? "border border-primary bg-transparent text-primary hover:bg-primary/10"
+                          : "cursor-not-allowed border border-gray-300 bg-transparent text-gray-500 dark:border-gray-700 dark:text-gray-400"
                           }`}
                         onClick={() =>
                           fullCode && setDropdownOpen(!dropdownOpen)
@@ -684,8 +683,8 @@ const Convert = () => {
                           <button
                             type="button"
                             className={`inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition duration-300 ease-in-out ${!pdfTitle.trim() || savingPdf
-                                ? "cursor-not-allowed opacity-50"
-                                : "cursor-pointer hover:bg-primary/90"
+                              ? "cursor-not-allowed opacity-50"
+                              : "cursor-pointer hover:bg-primary/90"
                               }`}
                             onClick={handleSavePdf}
                             disabled={!pdfTitle.trim() || savingPdf}
