@@ -1,12 +1,9 @@
 const {
   GoogleGenerativeAI,
-  HarmCategory,
-  HarmBlockThreshold,
 } = require("@google/generative-ai");
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const dotenv = require("dotenv");
 const { ok, err, Result } = require("neverthrow");
-import mime from "mime-types";
 
 dotenv.config();
 // Load the GEMINI_API_KEY from environment variables
@@ -45,7 +42,7 @@ function getModel(model) {
       return "gemini-2.0-flash-lite";
     case "pro":
       return "gemini-2.5-pro-exp-03-25";
-    
+
   }
 }
 
@@ -68,30 +65,6 @@ async function uploadToGemini(filePath, mimeType) {
   }
 }
 
-async function waitForFilesActive(files) {
-  console.log("Waiting for file processing...");
-  try {
-    for (const file of files) { // files is an array of file objects
-      let currentFile = await fileManager.getFile(file.name);
-      while (currentFile.state === "PROCESSING") {
-        process.stdout.write(".");
-        await new Promise((resolve) => setTimeout(resolve, 10_000));
-        currentFile = await fileManager.getFile(file.name);
-      }
-      if (currentFile.state !== "ACTIVE") {
-        return err(new Error(`File ${currentFile.name} failed to process`));
-      }
-    }
-    console.log("...all files ready\n");
-    return ok(undefined);
-  } catch (error) {
-    return err(error);
-  }
-}
-
-// add option to use gemini-2.5-pro-exp-03-25 for longer compile time but higher quality output
-
-
 const generationConfig = {
   temperature: 0.7,
   topP: 0.95,
@@ -106,7 +79,7 @@ async function run(
   modelType,
   customPrompt,
 ) {
-  try { 
+  try {
     if (!Array.isArray(filePaths)) {
       filePaths = [filePaths];
     }
@@ -179,3 +152,4 @@ async function run(
 }
 
 export { run };
+
