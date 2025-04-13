@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import { usePremiumStatus } from "@/utils/subscriptionCheck";
+import { Clipboard, ClipboardList, ListRestart, Lock, Save } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { Clipboard, ClipboardList, ListRestart, Save, Lock } from "lucide-react";
-import { usePremiumStatus } from "@/utils/subscriptionCheck";
+import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 const tabOptions = [
@@ -42,7 +42,7 @@ const modelOptions = [
   },
 ];
 
-interface PdfMetadata {
+interface PdfGenerationDetails {
   sourceFiles: string[]; // File names of source images
   processType: string; // Type of processing used
   timestamp: number; // When the PDF was generated
@@ -64,7 +64,7 @@ const Convert = () => {
   }, [session, status]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState("/sample.pdf");
-  const [pdfMetadata, setPdfMetadata] = useState<PdfMetadata | null>(null);
+  const [pdfMetadata, setPdfMetadata] = useState<PdfGenerationDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [processType, setProcessType] = useState("base");
@@ -186,7 +186,7 @@ const Convert = () => {
 
     // Ensure non-premium users can only use the regular model
     const actualModelType = (!isPremium && modelType !== "regular") ? "regular" : modelType;
-    
+
     try {
       // Step 1: Generate LaTeX
       const latexFormData = new FormData();
@@ -297,10 +297,10 @@ const Convert = () => {
     isLoading ||
     Boolean(
       pdfMetadata &&
-        pdfMetadata.processType === processType &&
-        pdfMetadata.sourceFiles.length === files.length &&
-        pdfMetadata.prompt === customPrompt &&
-        pdfMetadata.sourceFiles.every((name, i) => files[i].name === name),
+      pdfMetadata.processType === processType &&
+      pdfMetadata.sourceFiles.length === files.length &&
+      pdfMetadata.prompt === customPrompt &&
+      pdfMetadata.sourceFiles.every((name, i) => files[i].name === name),
     );
 
   const resetForm = () => {
@@ -337,9 +337,8 @@ const Convert = () => {
               </div>
 
               <div
-                className={`wow fadeInUp rounded-lg bg-white p-8 shadow-testimonial dark:bg-dark-2 dark:shadow-none ${
-                  isDragging ? "border-2 border-primary" : ""
-                }`}
+                className={`wow fadeInUp rounded-lg bg-white p-8 shadow-testimonial dark:bg-dark-2 dark:shadow-none ${isDragging ? "border-2 border-primary" : ""
+                  }`}
                 data-wow-delay=".2s"
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
@@ -409,11 +408,10 @@ const Convert = () => {
                         <div key={tab.key} className="relative">
                           <button
                             type="button"
-                            className={`px-6 py-3 text-base font-medium ${
-                              processType === tab.key
+                            className={`px-6 py-3 text-base font-medium ${processType === tab.key
                                 ? "border-b-2 border-primary text-primary"
                                 : "text-body-color hover:text-primary dark:text-dark-6"
-                            }`}
+                              }`}
                             onClick={() => setProcessType(tab.key)}
                             onMouseEnter={() => setActiveTooltip(tab.key)}
                             onMouseLeave={() => setActiveTooltip(null)}
@@ -440,13 +438,12 @@ const Convert = () => {
                           <div key={tab.key} className="relative">
                             <button
                               type="button"
-                              className={`px-6 py-3 text-base font-medium ${
-                                modelType === tab.key
+                              className={`px-6 py-3 text-base font-medium ${modelType === tab.key
                                   ? "border-b-2 border-primary text-primary"
                                   : isDisabled
-                                  ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                                  : "text-body-color hover:text-primary dark:text-dark-6"
-                              }`}
+                                    ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                                    : "text-body-color hover:text-primary dark:text-dark-6"
+                                }`}
                               onClick={() => {
                                 if (!isDisabled) {
                                   setModelType(tab.key);
@@ -496,11 +493,10 @@ const Convert = () => {
                     <div className="relative">
                       <button
                         type="submit"
-                        className={`inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out ${
-                          disableConversion
+                        className={`inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out ${disableConversion
                             ? "cursor-not-allowed opacity-50"
                             : "cursor-pointer hover:bg-primary/90"
-                        }`}
+                          }`}
                         disabled={disableConversion}
                         onMouseEnter={() => setActiveTooltip("convert")}
                         onMouseLeave={() => setActiveTooltip(null)}
@@ -544,11 +540,10 @@ const Convert = () => {
 
                     <button
                       type="button"
-                      className={`inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-5 py-3 text-base font-medium text-primary transition duration-300 ease-in-out ${
-                        files.length === 0 || isLoading
+                      className={`inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-5 py-3 text-base font-medium text-primary transition duration-300 ease-in-out ${files.length === 0 || isLoading
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer hover:bg-primary/10"
-                      }`}
+                        }`}
                       onClick={resetForm}
                       disabled={files.length === 0 || isLoading}
                     >
@@ -560,13 +555,12 @@ const Convert = () => {
                     <div className="group relative inline-block">
                       <button
                         type="button"
-                        className={`inline-flex items-center justify-center rounded-md px-10 py-3 text-base font-medium transition duration-300 ease-in-out ${
-                          pdfUrl !== "/sample.pdf" && pdfBlob
+                        className={`inline-flex items-center justify-center rounded-md px-10 py-3 text-base font-medium transition duration-300 ease-in-out ${pdfUrl !== "/sample.pdf" && pdfBlob
                             ? session
                               ? "bg-primary text-white hover:bg-primary/90"
                               : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
                             : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
-                        }`}
+                          }`}
                         onClick={() =>
                           session &&
                           pdfUrl !== "/sample.pdf" &&
@@ -588,15 +582,14 @@ const Convert = () => {
                         </div>
                       )}
                     </div>
-
+                    // TODO: make this go away on click off
                     <div className="relative">
                       <button
                         type="button"
-                        className={`inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium transition duration-300 ease-in-out ${
-                          fullCode
+                        className={`inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium transition duration-300 ease-in-out ${fullCode
                             ? "border border-primary bg-transparent text-primary hover:bg-primary/10"
                             : "cursor-not-allowed border border-gray-300 bg-transparent text-gray-500 dark:border-gray-700 dark:text-gray-400"
-                        }`}
+                          }`}
                         onClick={() =>
                           fullCode && setDropdownOpen(!dropdownOpen)
                         }
@@ -690,11 +683,10 @@ const Convert = () => {
                           </button>
                           <button
                             type="button"
-                            className={`inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition duration-300 ease-in-out ${
-                              !pdfTitle.trim() || savingPdf
+                            className={`inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition duration-300 ease-in-out ${!pdfTitle.trim() || savingPdf
                                 ? "cursor-not-allowed opacity-50"
                                 : "cursor-pointer hover:bg-primary/90"
-                            }`}
+                              }`}
                             onClick={handleSavePdf}
                             disabled={!pdfTitle.trim() || savingPdf}
                           >
