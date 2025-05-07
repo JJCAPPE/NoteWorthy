@@ -1,7 +1,31 @@
 const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
-const { initWebSocketServer } = require("./src/lib/websocket.js");
+const dotenv = require("dotenv");
+
+// Load environment variables from .env file
+dotenv.config();
+
+// Log API key presence (not the actual key)
+if (process.env.GEMINI_API_KEY) {
+    console.log("✅ GEMINI_API_KEY is set in environment");
+} else {
+    console.error("❌ GEMINI_API_KEY is not set in environment");
+}
+
+// Add debug message
+console.log("🚀 Starting server and loading WebSocket implementation");
+
+// Try-catch to ensure we capture any errors during the import
+let initWebSocketServer;
+try {
+    const websocketModule = require("./src/lib/websocket.js");
+    initWebSocketServer = websocketModule.initWebSocketServer;
+    console.log("✅ WebSocket module loaded successfully");
+} catch (error) {
+    console.error("❌ Error loading WebSocket module:", error);
+    process.exit(1);
+}
 
 const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });
@@ -27,8 +51,13 @@ app.prepare().then(() => {
         handle(req, res, parsedUrl);
     });
 
-    // Initialize WebSocket server
-    initWebSocketServer(server);
+    // Initialize WebSocket server with more error handling
+    try {
+        const io = initWebSocketServer(server);
+        console.log("✅ WebSocket server initialized successfully");
+    } catch (error) {
+        console.error("❌ Error initializing WebSocket server:", error);
+    }
 
     server.listen(process.env.PORT || 3000, (err) => {
         if (err) throw err;

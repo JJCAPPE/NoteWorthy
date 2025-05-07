@@ -91,7 +91,14 @@ export function useWebSocket({
       modelType: string,
       customPrompt: string,
     ) => {
+      console.log("startLatexGeneration called in hook", {
+        socketExists: !!socket,
+        connected,
+        fileCount: files.length,
+      });
+
       if (!socket || !connected) {
+        console.error("WebSocket not connected or socket is null");
         setError("WebSocket not connected");
         return;
       }
@@ -102,6 +109,7 @@ export function useWebSocket({
       });
 
       try {
+        console.log("Converting files to buffers...");
         // Convert files to buffers for transmission
         const fileBuffers = await Promise.all(
           files.map(async (file) => ({
@@ -110,14 +118,19 @@ export function useWebSocket({
             mimeType: file.type,
           })),
         );
+        console.log("Files converted successfully", {
+          count: fileBuffers.length,
+        });
 
         // Send the request
+        console.log("Emitting startLatexGeneration event to server");
         socket.emit("startLatexGeneration", {
           files: fileBuffers,
           processType,
           modelType,
           customPrompt,
         });
+        console.log("Event emitted successfully");
       } catch (err) {
         console.error("Error preparing files:", err);
         setError(

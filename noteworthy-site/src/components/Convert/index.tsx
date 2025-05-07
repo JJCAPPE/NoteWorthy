@@ -13,6 +13,7 @@ import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import StreamingOverlay from "../StreamingOverlay";
+import { LatexGenerationStatus } from "@/lib/websocket";
 
 const tabOptions = [
   {
@@ -91,7 +92,7 @@ const Convert = () => {
     useState<boolean>(false);
 
   // Initialize WebSocket connection
-  const { latexStatus, startLatexGeneration, connected, error } =
+  const { latexStatus, startLatexGeneration, connected, error, socket } =
     useWebSocket();
 
   useEffect(() => {
@@ -205,6 +206,20 @@ const Convert = () => {
           // Ensure content is defined before passing to fetchComposedLatex
           if (!latexStatus.content) return;
 
+          // Update status to "compiling"
+          const compilingStatus: LatexGenerationStatus = {
+            status: "compiling",
+            content: latexStatus.content,
+            progress: 100,
+          };
+
+          // We can't directly modify latexStatus from the WebSocket hook,
+          // so we'll simulate the status update for our UI
+          const customEvent = new CustomEvent("latexStatusUpdate", {
+            detail: compilingStatus,
+          });
+          window.dispatchEvent(customEvent);
+
           const fullLatex = await fetchComposedLatex(latexStatus.content);
           setFullCode(fullLatex);
 
@@ -236,11 +251,13 @@ const Convert = () => {
             timestamp: Date.now(),
             prompt: customPrompt,
           });
+
+          // Auto-close the overlay after PDF is loaded
+          setTimeout(() => setShowStreamingOverlay(false), 1000);
         } catch (error) {
           console.error("Error in PDF generation:", error);
         } finally {
           setIsLoading(false);
-          // Keep overlay open until user closes it, even if generation is complete
         }
       })();
     } else if (latexStatus?.status === "error") {
@@ -248,20 +265,81 @@ const Convert = () => {
     }
   }, [latexStatus, files, processType, customPrompt]);
 
+  // Add event listener for our custom status update
+  useEffect(() => {
+    const handleStatusUpdate = (event: CustomEvent<LatexGenerationStatus>) => {
+      // This simulates a WebSocket status update for the compilation phase
+      const statusHandler = document.querySelector("[data-status-handler]");
+      if (statusHandler) {
+        statusHandler.dispatchEvent(
+          new CustomEvent("statusUpdate", { detail: event.detail }),
+        );
+      }
+    };
+
+    window.addEventListener(
+      "latexStatusUpdate",
+      handleStatusUpdate as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "latexStatusUpdate",
+        handleStatusUpdate as EventListener,
+      );
+    };
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (files.length === 0 || isLoading) return;
+    console.log("🔍 handleSubmit called - starting conversion process");
+    if (files.length === 0 || isLoading) {
+      console.log("🚫 No files or already loading, returning");
+      return;
+    }
 
     setIsLoading(true);
     setShowStreamingOverlay(true);
+    console.log("✅ Form is valid, starting LaTeX generation");
 
     try {
       // Use WebSocket instead of REST API
       const actualModelType = modelType === "auto" ? "regular" : modelType;
 
+      // Detailed debugging of WebSocket state
+      console.log("🔌 WebSocket status check:", {
+        files: files.length,
+        processType,
+        actualModelType,
+        customPrompt: customPrompt ? "present" : "not present",
+        connected, // Check if websocket is connected
+        socketExists: !!socket, // Check if socket object exists
+        socket: socket
+          ? {
+              id: socket.id,
+              connected: socket.connected,
+              disconnected: socket.disconnected,
+            }
+          : "null",
+      });
+
+      // Force a small delay to make sure logs are printed in order
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      console.log("🚀 Calling startLatexGeneration from handleSubmit");
       startLatexGeneration(files, processType, actualModelType, customPrompt);
+      console.log("📤 LaTeX generation requested via WebSocket");
+
+      // Check what happens after the call
+      setTimeout(() => {
+        console.log("⏱️ Status after startLatexGeneration:", {
+          latexStatus,
+          isLoading,
+          showStreamingOverlay,
+        });
+      }, 500);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Error starting LaTeX generation:", error);
       setIsLoading(false);
       setShowStreamingOverlay(false);
     }

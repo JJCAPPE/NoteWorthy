@@ -1,6 +1,5 @@
 import { Server as SocketIOServer } from "socket.io";
 import { Server as HTTPServer } from "http";
-import { run } from "@/app/api/latex/generate/geminiIntegration";
 import { promises as fsPromises } from "fs";
 import path from "path";
 import os from "os";
@@ -18,7 +17,7 @@ export interface LatexGenerationRequest {
 }
 
 export interface LatexGenerationStatus {
-  status: "thinking" | "processing" | "complete" | "error";
+  status: "thinking" | "processing" | "complete" | "compiling" | "error";
   content?: string;
   error?: string;
   progress?: number;
@@ -27,16 +26,27 @@ export interface LatexGenerationStatus {
 // Define the callback type to match geminiIntegration.js
 type StreamCallback = (chunk: string, progress: number) => void;
 
-// Augment the module declaration for proper typing
-declare module "@/app/api/latex/generate/geminiIntegration" {
-  export function run(
-    filePaths: string | string[],
-    processType: string,
-    modelType: string,
-    customPrompt: string,
-    streamCallback?: StreamCallback | null,
-  ): Promise<any>;
-}
+// Import the run function with dynamic import to avoid TypeScript errors
+let runFunction: any;
+
+// We'll dynamically import it to avoid TypeScript errors
+const importRun = async () => {
+  console.log("[websocket.ts] Importing run function dynamically");
+  try {
+    // Using require to import CommonJS module
+    const geminiIntegration = require("../app/api/latex/generate/geminiIntegration");
+    runFunction = geminiIntegration.run;
+    console.log(
+      "[websocket.ts] Run function imported successfully:",
+      !!runFunction,
+    );
+  } catch (error) {
+    console.error("[websocket.ts] Failed to import run function:", error);
+  }
+};
+
+// Make sure to import it before using
+importRun();
 
 let io: SocketIOServer | null = null;
 
@@ -45,6 +55,8 @@ let io: SocketIOServer | null = null;
  */
 export function initWebSocketServer(server: HTTPServer): SocketIOServer {
   if (io) return io;
+
+  console.log("[websocket.ts] Initializing WebSocket server");
 
   io = new SocketIOServer(server, {
     cors: {
@@ -58,20 +70,40 @@ export function initWebSocketServer(server: HTTPServer): SocketIOServer {
   });
 
   io.on("connection", (socket) => {
-    console.log("Client connected:", socket.id);
+    console.log("[websocket.ts] Client connected:", socket.id);
 
     // Handle LaTeX generation request
     socket.on("startLatexGeneration", async (data: LatexGenerationRequest) => {
+      console.log("[websocket.ts] Received startLatexGeneration event:", {
+        socketId: socket.id,
+        fileCount: data.files.length,
+        processType: data.processType,
+        modelType: data.modelType,
+      });
+
       try {
+        // Make sure we have the run function
+        if (!runFunction) {
+          console.log("[websocket.ts] Run function not loaded, importing now");
+          await importRun();
+          if (!runFunction) {
+            const error = "Failed to load the LaTeX generation function";
+            console.error("[websocket.ts]", error);
+            throw new Error(error);
+          }
+        }
+
         // Notify client we're thinking
         socket.emit("latexGenerationStatus", {
           status: "thinking",
           content: "Preparing to process your notes...",
         } as LatexGenerationStatus);
+        console.log("[websocket.ts] Sent thinking status to client");
 
         // Create temporary directory for files
         const uploadDir = path.join(os.tmpdir(), "uploads", "temp");
         await fsPromises.mkdir(uploadDir, { recursive: true });
+        console.log("[websocket.ts] Created temp directory:", uploadDir);
 
         // Save files to temporary directory
         const filePaths: string[] = [];
@@ -81,6 +113,9 @@ export function initWebSocketServer(server: HTTPServer): SocketIOServer {
           await fsPromises.writeFile(filePath, new Uint8Array(file.buffer));
           filePaths.push(filePath);
         }
+        console.log("[websocket.ts] Saved files to disk:", {
+          count: filePaths.length,
+        });
 
         // Notify client we're starting processing
         socket.emit("latexGenerationStatus", {
@@ -88,25 +123,32 @@ export function initWebSocketServer(server: HTTPServer): SocketIOServer {
           content: "Starting the AI model...",
           progress: 5,
         } as LatexGenerationStatus);
+        console.log("[websocket.ts] Starting Gemini model with streaming");
 
         // Start the Gemini model with streaming
-        const streamResult = await run(
+        const streamResult = await runFunction(
           filePaths,
           data.processType,
           data.modelType,
           data.customPrompt,
           // Add callback function to stream results
-          ((chunk: string, progress: number) => {
+          (chunk: string, progress: number) => {
             socket.emit("latexGenerationStatus", {
               status: "processing",
               content: chunk,
               progress,
             } as LatexGenerationStatus);
-          }) as StreamCallback,
+          },
+        );
+
+        console.log(
+          "[websocket.ts] Gemini processing complete, result:",
+          streamResult.isErr() ? "ERROR" : "SUCCESS",
         );
 
         if (streamResult.isErr()) {
           const { type, error } = streamResult.error;
+          console.error("[websocket.ts] Gemini error:", { type, error });
           socket.emit("latexGenerationStatus", {
             status: "error",
             error: `${type}: ${error}`,

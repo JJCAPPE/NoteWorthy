@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LatexGenerationStatus } from "@/lib/websocket";
 
 interface StreamingOverlayProps {
@@ -13,36 +13,83 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
   visible,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [internalStatus, setInternalStatus] =
+    useState<LatexGenerationStatus | null>(status);
+
+  // Use the most recent status (from props or internal)
+  const currentStatus = internalStatus || status;
+
+  // Listen for custom status updates
+  useEffect(() => {
+    const handleStatusUpdate = (event: CustomEvent<LatexGenerationStatus>) => {
+      setInternalStatus(event.detail);
+    };
+
+    const element = document.querySelector("[data-status-handler]");
+    if (element) {
+      element.addEventListener(
+        "statusUpdate",
+        handleStatusUpdate as EventListener,
+      );
+    }
+
+    return () => {
+      if (element) {
+        element.removeEventListener(
+          "statusUpdate",
+          handleStatusUpdate as EventListener,
+        );
+      }
+    };
+  }, []);
+
+  // Update internal status when props change
+  useEffect(() => {
+    if (status) {
+      setInternalStatus(status);
+    }
+  }, [status]);
 
   // Auto-scroll to bottom when content updates
   useEffect(() => {
-    if (contentRef.current && status?.content) {
+    if (contentRef.current && currentStatus?.content) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
-  }, [status?.content]);
+  }, [currentStatus?.content]);
 
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+      data-status-handler
+    >
       <div className="relative max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-xl dark:bg-dark-2">
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4 dark:border-dark-3">
           <h3 className="flex items-center text-lg font-semibold text-dark dark:text-white">
-            {status?.status === "thinking" && (
+            {currentStatus?.status === "thinking" && (
               <>
                 <span className="mr-2">Thinking</span>
                 <span className="animate-pulse">...</span>
               </>
             )}
-            {status?.status === "processing" && (
+            {currentStatus?.status === "processing" && (
               <>
                 <span className="mr-2">Generating LaTeX</span>
-                <span>{status.progress ? `(${status.progress}%)` : ""}</span>
+                <span>
+                  {currentStatus.progress ? `(${currentStatus.progress}%)` : ""}
+                </span>
               </>
             )}
-            {status?.status === "complete" && "Generation Complete"}
-            {status?.status === "error" && "Error Occurred"}
+            {currentStatus?.status === "complete" && "Generation Complete"}
+            {currentStatus?.status === "compiling" && (
+              <>
+                <span className="mr-2">Compiling PDF</span>
+                <span className="animate-pulse">...</span>
+              </>
+            )}
+            {currentStatus?.status === "error" && "Error Occurred"}
           </h3>
           <button
             type="button"
@@ -67,12 +114,22 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
         </div>
 
         {/* Progress bar */}
-        {status?.status === "processing" && status.progress && (
+        {currentStatus?.status === "processing" && currentStatus.progress && (
           <div className="h-2 w-full bg-gray-200 dark:bg-dark-3">
             <div
               className="h-full bg-primary transition-all duration-300 ease-in-out"
-              style={{ width: `${status.progress}%` }}
+              style={{ width: `${currentStatus.progress}%` }}
             />
+          </div>
+        )}
+
+        {/* Indeterminate progress bar for compiling */}
+        {currentStatus?.status === "compiling" && (
+          <div className="h-2 w-full overflow-hidden bg-gray-200 dark:bg-dark-3">
+            <div
+              className="h-full animate-pulse bg-primary"
+              style={{ width: "100%" }}
+            ></div>
           </div>
         )}
 
@@ -81,7 +138,7 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
           ref={contentRef}
           className="max-h-[calc(80vh-8rem)] overflow-y-auto whitespace-pre-wrap p-6 font-mono text-sm"
         >
-          {status?.status === "thinking" && (
+          {currentStatus?.status === "thinking" && (
             <div className="flex h-32 items-center justify-center">
               <div className="flex animate-pulse space-x-2">
                 <div className="h-3 w-3 rounded-full bg-primary"></div>
@@ -91,25 +148,43 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
             </div>
           )}
 
-          {status?.status === "processing" && status.content && (
-            <div className="text-dark dark:text-white">{status.content}</div>
+          {currentStatus?.status === "processing" && currentStatus.content && (
+            <div className="text-dark dark:text-white">
+              {currentStatus.content}
+            </div>
           )}
 
-          {status?.status === "complete" && status.content && (
-            <div className="text-dark dark:text-white">{status.content}</div>
+          {currentStatus?.status === "complete" && currentStatus.content && (
+            <div className="text-dark dark:text-white">
+              {currentStatus.content}
+            </div>
           )}
 
-          {status?.status === "error" && (
+          {currentStatus?.status === "compiling" && (
+            <div className="text-dark dark:text-white">
+              <p className="text-center">Creating your PDF document...</p>
+              <div className="mt-4 flex h-32 items-center justify-center">
+                <div className="flex animate-pulse space-x-2">
+                  <div className="h-3 w-3 rounded-full bg-primary"></div>
+                  <div className="h-3 w-3 rounded-full bg-primary"></div>
+                  <div className="h-3 w-3 rounded-full bg-primary"></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentStatus?.status === "error" && (
             <div className="text-red-500">
               <p className="mb-2 font-bold">An error occurred:</p>
-              <p>{status.error || "Unknown error"}</p>
+              <p>{currentStatus.error || "Unknown error"}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex justify-between border-t p-4 dark:border-dark-3">
-          {status?.status === "complete" ? (
+          {currentStatus?.status === "complete" ||
+          currentStatus?.status === "compiling" ? (
             <button
               type="button"
               onClick={onClose}
@@ -119,16 +194,19 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
             </button>
           ) : (
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              {status?.status === "thinking" && "Preparing to process..."}
-              {status?.status === "processing" &&
+              {currentStatus?.status === "thinking" &&
+                "Preparing to process..."}
+              {currentStatus?.status === "processing" &&
                 "Streaming results in real-time..."}
-              {status?.status === "error" && "Generation failed."}
+              {currentStatus?.status === "error" && "Generation failed."}
             </div>
           )}
 
-          {status?.status !== "error" && (
+          {currentStatus?.status !== "error" && (
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              This may take a minute or two for complex notes.
+              {currentStatus?.status === "compiling"
+                ? "This may take a few seconds..."
+                : "This may take a minute or two for complex notes."}
             </div>
           )}
         </div>
