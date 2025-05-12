@@ -1,0 +1,8 @@
+*** Github Actions
+
+// TODO: Git Action Setup
+- Add actions to make sure no merging is done before 
+  - npm build is passes
+  - vercel build works
+
+
