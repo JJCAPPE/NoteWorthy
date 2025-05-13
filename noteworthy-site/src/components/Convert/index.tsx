@@ -1,10 +1,19 @@
 "use client";
 import { usePremiumStatus } from "@/utils/subscriptionCheck";
-import { Clipboard, ClipboardList, ListRestart, Lock, Save } from "lucide-react";
+import {
+  Clipboard,
+  ClipboardList,
+  ListRestart,
+  Lock,
+  Save,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import StreamingOverlay from "../StreamingOverlay";
+import { LatexGenerationStatus } from "@/lib/websocket";
 
 const tabOptions = [
   {
@@ -64,7 +73,9 @@ const Convert = () => {
   }, [session, status]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState("/sample.pdf");
-  const [pdfMetadata, setPdfMetadata] = useState<PdfGenerationDetails | null>(null);
+  const [pdfMetadata, setPdfMetadata] = useState<PdfGenerationDetails | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [processType, setProcessType] = useState("base");
@@ -77,6 +88,12 @@ const Convert = () => {
   const [pdfTitle, setPdfTitle] = useState("");
   const [savingPdf, setSavingPdf] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [showStreamingOverlay, setShowStreamingOverlay] =
+    useState<boolean>(false);
+
+  // Initialize WebSocket connection
+  const { latexStatus, startLatexGeneration, connected, error, socket } =
+    useWebSocket();
 
   useEffect(() => {
     if (files.length === 0) {
@@ -179,73 +196,152 @@ const Convert = () => {
     }
   }
 
+  // Effect to handle completed LaTeX generation
+  useEffect(() => {
+    if (latexStatus?.status === "complete" && latexStatus.content) {
+      setLatexCode(latexStatus.content);
+
+      (async () => {
+        try {
+          // Ensure content is defined before passing to fetchComposedLatex
+          if (!latexStatus.content) return;
+
+          // Update status to "compiling"
+          const compilingStatus: LatexGenerationStatus = {
+            status: "compiling",
+            content: latexStatus.content,
+            progress: 100,
+          };
+
+          // We can't directly modify latexStatus from the WebSocket hook,
+          // so we'll simulate the status update for our UI
+          const customEvent = new CustomEvent("latexStatusUpdate", {
+            detail: compilingStatus,
+          });
+          window.dispatchEvent(customEvent);
+
+          const fullLatex = await fetchComposedLatex(latexStatus.content);
+          setFullCode(fullLatex);
+
+          // Step 2: Generate PDF using JSON
+          const pdfResponse = await fetch("/api/generatePdf", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ latexCode: fullLatex }),
+          });
+
+          if (!pdfResponse.ok) {
+            const errorData = await pdfResponse.json();
+            console.error(
+              "PDF_COMPILATION_ERROR:",
+              errorData.error,
+              errorData.details,
+            );
+            setPdfUrl("/error.pdf");
+            return;
+          }
+
+          const blob = await pdfResponse.blob();
+          setPdfBlob(blob); // Store the blob for saving later
+          const url = URL.createObjectURL(blob);
+          setPdfUrl(url);
+          setPdfMetadata({
+            sourceFiles: files.map((f) => f.name),
+            processType,
+            timestamp: Date.now(),
+            prompt: customPrompt,
+          });
+
+          // Auto-close the overlay after PDF is loaded
+          setTimeout(() => setShowStreamingOverlay(false), 1000);
+        } catch (error) {
+          console.error("Error in PDF generation:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+    } else if (latexStatus?.status === "error") {
+      setIsLoading(false);
+    }
+  }, [latexStatus, files, processType, customPrompt]);
+
+  // Add event listener for our custom status update
+  useEffect(() => {
+    const handleStatusUpdate = (event: CustomEvent<LatexGenerationStatus>) => {
+      // This simulates a WebSocket status update for the compilation phase
+      const statusHandler = document.querySelector("[data-status-handler]");
+      if (statusHandler) {
+        statusHandler.dispatchEvent(
+          new CustomEvent("statusUpdate", { detail: event.detail }),
+        );
+      }
+    };
+
+    window.addEventListener(
+      "latexStatusUpdate",
+      handleStatusUpdate as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "latexStatusUpdate",
+        handleStatusUpdate as EventListener,
+      );
+    };
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (files.length === 0) return;
-    setIsLoading(true);
+    console.log("🔍 handleSubmit called - starting conversion process");
+    if (files.length === 0 || isLoading) {
+      console.log("🚫 No files or already loading, returning");
+      return;
+    }
 
-    // Ensure non-premium users can only use the regular model
-    const actualModelType = (!isPremium && modelType !== "regular") ? "regular" : modelType;
+    setIsLoading(true);
+    setShowStreamingOverlay(true);
+    console.log("✅ Form is valid, starting LaTeX generation");
 
     try {
-      // Step 1: Generate LaTeX
-      const latexFormData = new FormData();
-      files.forEach((file) => latexFormData.append("noteImage", file));
-      latexFormData.append("processType", processType);
-      latexFormData.append("modelType", actualModelType);
-      latexFormData.append("customPrompt", customPrompt);
+      // Use WebSocket instead of REST API
+      const actualModelType = modelType === "auto" ? "regular" : modelType;
 
-      const latexResponse = await fetch("/api/latex/generate", {
-        method: "POST",
-        body: latexFormData,
-      });
-
-      if (!latexResponse.ok) {
-        const errorData = await latexResponse.json();
-        console.error("LaTeX Error:", errorData.error, errorData.details);
-        return;
-      }
-
-      const { cleanedLatex } = await latexResponse.json();
-
-      setLatexCode(cleanedLatex);
-
-      const fullLatex = await fetchComposedLatex(cleanedLatex);
-
-      setFullCode(fullLatex);
-
-      // Step 2: Generate PDF using JSON
-      const pdfResponse = await fetch("/api/generatePdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latexCode: fullLatex }),
-      });
-
-      if (!pdfResponse.ok) {
-        const errorData = await pdfResponse.json();
-        console.error(
-          "PDF_COMPILATION_ERROR:",
-          errorData.error,
-          errorData.details,
-        );
-        setPdfUrl("/error.pdf");
-        return;
-      }
-
-      const blob = await pdfResponse.blob();
-      setPdfBlob(blob); // Store the blob for saving later
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      setPdfMetadata({
-        sourceFiles: files.map((f) => f.name),
+      // Detailed debugging of WebSocket state
+      console.log("🔌 WebSocket status check:", {
+        files: files.length,
         processType,
-        timestamp: Date.now(),
-        prompt: customPrompt,
+        actualModelType,
+        customPrompt: customPrompt ? "present" : "not present",
+        connected, // Check if websocket is connected
+        socketExists: !!socket, // Check if socket object exists
+        socket: socket
+          ? {
+              id: socket.id,
+              connected: socket.connected,
+              disconnected: socket.disconnected,
+            }
+          : "null",
       });
+
+      // Force a small delay to make sure logs are printed in order
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      console.log("🚀 Calling startLatexGeneration from handleSubmit");
+      startLatexGeneration(files, processType, actualModelType, customPrompt);
+      console.log("📤 LaTeX generation requested via WebSocket");
+
+      // Check what happens after the call
+      setTimeout(() => {
+        console.log("⏱️ Status after startLatexGeneration:", {
+          latexStatus,
+          isLoading,
+          showStreamingOverlay,
+        });
+      }, 500);
     } catch (error) {
-      console.error("Error:", error);
-    } finally {
+      console.error("❌ Error starting LaTeX generation:", error);
       setIsLoading(false);
+      setShowStreamingOverlay(false);
     }
   };
 
@@ -297,10 +393,10 @@ const Convert = () => {
     isLoading ||
     Boolean(
       pdfMetadata &&
-      pdfMetadata.processType === processType &&
-      pdfMetadata.sourceFiles.length === files.length &&
-      pdfMetadata.prompt === customPrompt &&
-      pdfMetadata.sourceFiles.every((name, i) => files[i].name === name),
+        pdfMetadata.processType === processType &&
+        pdfMetadata.sourceFiles.length === files.length &&
+        pdfMetadata.prompt === customPrompt &&
+        pdfMetadata.sourceFiles.every((name, i) => files[i].name === name),
     );
 
   const resetForm = () => {
@@ -337,8 +433,9 @@ const Convert = () => {
               </div>
 
               <div
-                className={`wow fadeInUp rounded-lg bg-white p-8 shadow-testimonial dark:bg-dark-2 dark:shadow-none ${isDragging ? "border-2 border-primary" : ""
-                  }`}
+                className={`wow fadeInUp rounded-lg bg-white p-8 shadow-testimonial dark:bg-dark-2 dark:shadow-none ${
+                  isDragging ? "border-2 border-primary" : ""
+                }`}
                 data-wow-delay=".2s"
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
@@ -408,10 +505,11 @@ const Convert = () => {
                         <div key={tab.key} className="relative">
                           <button
                             type="button"
-                            className={`px-6 py-3 text-base font-medium ${processType === tab.key
-                              ? "border-b-2 border-primary text-primary"
-                              : "text-body-color hover:text-primary dark:text-dark-6"
-                              }`}
+                            className={`px-6 py-3 text-base font-medium ${
+                              processType === tab.key
+                                ? "border-b-2 border-primary text-primary"
+                                : "text-body-color hover:text-primary dark:text-dark-6"
+                            }`}
                             onClick={() => setProcessType(tab.key)}
                             onMouseEnter={() => setActiveTooltip(tab.key)}
                             onMouseLeave={() => setActiveTooltip(null)}
@@ -430,7 +528,7 @@ const Convert = () => {
                   </div>
 
                   <div className="mb-2 flex w-full justify-center border-b border-[#f1f1f1] dark:border-dark-3">
-                    <div className="flex relative">
+                    <div className="relative flex">
                       {modelOptions.map((tab) => {
                         const isPremiumModel = tab.key !== "regular";
                         const isDisabled = isPremiumModel && !isPremium;
@@ -438,24 +536,29 @@ const Convert = () => {
                           <div key={tab.key} className="relative">
                             <button
                               type="button"
-                              className={`px-6 py-3 text-base font-medium ${modelType === tab.key
-                                ? "border-b-2 border-primary text-primary"
-                                : isDisabled
-                                  ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                                  : "text-body-color hover:text-primary dark:text-dark-6"
-                                }`}
+                              className={`px-6 py-3 text-base font-medium ${
+                                modelType === tab.key
+                                  ? "border-b-2 border-primary text-primary"
+                                  : isDisabled
+                                    ? "cursor-not-allowed text-gray-400 dark:text-gray-600"
+                                    : "text-body-color hover:text-primary dark:text-dark-6"
+                              }`}
                               onClick={() => {
                                 if (!isDisabled) {
                                   setModelType(tab.key);
                                 } else {
-                                  toast.error("Premium subscription required for advanced models");
+                                  toast.error(
+                                    "Premium subscription required for advanced models",
+                                  );
                                 }
                               }}
                               onMouseEnter={() => setActiveTooltip(tab.key)}
                               onMouseLeave={() => setActiveTooltip(null)}
                             >
                               {tab.label}
-                              {isDisabled && <Lock className="inline-block ml-1" size={14} />}
+                              {isDisabled && (
+                                <Lock className="ml-1 inline-block" size={14} />
+                              )}
                             </button>
                             {activeTooltip === tab.key && (
                               <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded bg-dark px-3 py-1 text-xs text-white">
@@ -493,10 +596,11 @@ const Convert = () => {
                     <div className="relative">
                       <button
                         type="submit"
-                        className={`inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out ${disableConversion
-                          ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer hover:bg-primary/90"
-                          }`}
+                        className={`inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-base font-medium text-white transition duration-300 ease-in-out ${
+                          disableConversion
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer hover:bg-primary/90"
+                        }`}
                         disabled={disableConversion}
                         onMouseEnter={() => setActiveTooltip("convert")}
                         onMouseLeave={() => setActiveTooltip(null)}
@@ -532,7 +636,8 @@ const Convert = () => {
 
                       {activeTooltip === "convert" && (
                         <div className="absolute bottom-full left-1/2 mb-2 min-w-[400px] -translate-x-1/2 transform whitespace-nowrap rounded bg-dark px-3 py-1 text-center text-xs text-white">
-                          This may take up to a minute, depending on your document length
+                          This may take up to a minute, depending on your
+                          document length
                           <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-x-4 border-b-0 border-t-4 border-solid border-x-transparent border-t-dark"></div>
                         </div>
                       )}
@@ -540,10 +645,11 @@ const Convert = () => {
 
                     <button
                       type="button"
-                      className={`inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-5 py-3 text-base font-medium text-primary transition duration-300 ease-in-out ${files.length === 0 || isLoading
-                        ? "cursor-not-allowed opacity-50"
-                        : "cursor-pointer hover:bg-primary/10"
-                        }`}
+                      className={`inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-5 py-3 text-base font-medium text-primary transition duration-300 ease-in-out ${
+                        files.length === 0 || isLoading
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer hover:bg-primary/10"
+                      }`}
                       onClick={resetForm}
                       disabled={files.length === 0 || isLoading}
                     >
@@ -555,12 +661,13 @@ const Convert = () => {
                     <div className="group relative inline-block">
                       <button
                         type="button"
-                        className={`inline-flex items-center justify-center rounded-md px-10 py-3 text-base font-medium transition duration-300 ease-in-out ${pdfUrl !== "/sample.pdf" && pdfBlob
-                          ? session
-                            ? "bg-primary text-white hover:bg-primary/90"
+                        className={`inline-flex items-center justify-center rounded-md px-10 py-3 text-base font-medium transition duration-300 ease-in-out ${
+                          pdfUrl !== "/sample.pdf" && pdfBlob
+                            ? session
+                              ? "bg-primary text-white hover:bg-primary/90"
+                              : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
                             : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
-                          : "cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
-                          }`}
+                        }`}
                         onClick={() =>
                           session &&
                           pdfUrl !== "/sample.pdf" &&
@@ -585,10 +692,11 @@ const Convert = () => {
                     <div className="relative">
                       <button
                         type="button"
-                        className={`inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium transition duration-300 ease-in-out ${fullCode
-                          ? "border border-primary bg-transparent text-primary hover:bg-primary/10"
-                          : "cursor-not-allowed border border-gray-300 bg-transparent text-gray-500 dark:border-gray-700 dark:text-gray-400"
-                          }`}
+                        className={`inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium transition duration-300 ease-in-out ${
+                          fullCode
+                            ? "border border-primary bg-transparent text-primary hover:bg-primary/10"
+                            : "cursor-not-allowed border border-gray-300 bg-transparent text-gray-500 dark:border-gray-700 dark:text-gray-400"
+                        }`}
                         onClick={() =>
                           fullCode && setDropdownOpen(!dropdownOpen)
                         }
@@ -598,7 +706,7 @@ const Convert = () => {
                       </button>
 
                       {dropdownOpen && fullCode && (
-                        <div className="absolute left-0 -bottom-1 z-50 translate-y-full mt-1 w-64 rounded-md bg-white shadow-lg dark:bg-dark-2">
+                        <div className="absolute -bottom-1 left-0 z-50 mt-1 w-64 translate-y-full rounded-md bg-white shadow-lg dark:bg-dark-2">
                           <div className="py-1">
                             <button
                               type="button"
@@ -682,10 +790,11 @@ const Convert = () => {
                           </button>
                           <button
                             type="button"
-                            className={`inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition duration-300 ease-in-out ${!pdfTitle.trim() || savingPdf
-                              ? "cursor-not-allowed opacity-50"
-                              : "cursor-pointer hover:bg-primary/90"
-                              }`}
+                            className={`inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition duration-300 ease-in-out ${
+                              !pdfTitle.trim() || savingPdf
+                                ? "cursor-not-allowed opacity-50"
+                                : "cursor-pointer hover:bg-primary/90"
+                            }`}
                             onClick={handleSavePdf}
                             disabled={!pdfTitle.trim() || savingPdf}
                           >
@@ -763,6 +872,20 @@ const Convert = () => {
           </div>
         </div>
       </div>
+
+      {/* Add streaming overlay */}
+      <StreamingOverlay
+        status={latexStatus}
+        visible={showStreamingOverlay}
+        onClose={() => {
+          setShowStreamingOverlay(false);
+
+          // If there was an error or generation is still in progress, reset loading state
+          if (latexStatus?.status !== "complete") {
+            setIsLoading(false);
+          }
+        }}
+      />
     </section>
   );
 };
