@@ -56,4 +56,6 @@ jobs:
 
       - name: Build with Next.js
         working-directory: noteworthy-site
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'dummy-key-for-ci' }}
         run: ${{ steps.detect-package-manager.outputs.runner }} next build
