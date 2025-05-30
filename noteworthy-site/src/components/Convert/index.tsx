@@ -448,14 +448,14 @@ const Convert = () => {
                   </h3>
                 </div>
                 <p className="mb-6 text-center text-base text-body-color dark:text-dark-6">
-                  Upload JPEG, PNG, or WEBP files
+                  Upload JPEG, PNG, WEBP files or PDF documents
                 </p>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                   <div className="rounded-md border-2 border-dashed border-[#f1f1f1] p-8 text-center dark:border-dark-3">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,application/pdf"
                       multiple
                       onChange={handleFileChange}
                       className="hidden"
@@ -477,23 +477,51 @@ const Convert = () => {
 
                   {previewUrls.length > 0 && (
                     <div className="mt-4 flex flex-wrap justify-center gap-4">
-                      {previewUrls.map((url, index) => (
+                      {files.map((file, index) => (
                         <div
                           key={index}
                           className="relative overflow-hidden rounded border shadow-sm"
                         >
-                          <Image
-                            src={url}
-                            alt={`Preview ${index}`}
-                            className="max-h-64 object-contain"
-                            width={100}
-                            height={Math.min(
-                              100,
-                              (url.match(/.*\.(.*)/) || [])[1] === "gif"
-                                ? 200
-                                : 300,
-                            )}
-                          />
+                          {file.type === "application/pdf" ? (
+                            // PDF preview
+                            <div className="flex h-32 w-32 flex-col items-center justify-center bg-gray-50 p-4 dark:bg-dark-3">
+                              <svg
+                                className="mb-2 h-8 w-8 text-red-500"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span className="text-center text-xs font-medium text-gray-700 dark:text-gray-300">
+                                {file.name.length > 12
+                                  ? file.name.substring(0, 12) + "..."
+                                  : file.name}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                PDF
+                              </span>
+                            </div>
+                          ) : (
+                            // Image preview
+                            <Image
+                              src={previewUrls[index]}
+                              alt={`Preview ${index}`}
+                              className="max-h-64 object-contain"
+                              width={100}
+                              height={Math.min(
+                                100,
+                                (previewUrls[index].match(/.*\.(.*)/) ||
+                                  [])[1] === "gif"
+                                  ? 200
+                                  : 300,
+                              )}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
