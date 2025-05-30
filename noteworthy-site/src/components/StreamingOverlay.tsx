@@ -82,6 +82,14 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
                 </span>
               </>
             )}
+            {currentStatus?.status === "processing_pdf" && (
+              <>
+                <span className="mr-2">Processing PDF</span>
+                <span>
+                  {currentStatus.progress ? `(${currentStatus.progress}%)` : ""}
+                </span>
+              </>
+            )}
             {currentStatus?.status === "complete" && "Generation Complete"}
             {currentStatus?.status === "compiling" && (
               <>
@@ -114,14 +122,16 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
         </div>
 
         {/* Progress bar */}
-        {currentStatus?.status === "processing" && currentStatus.progress && (
-          <div className="h-2 w-full bg-gray-200 dark:bg-dark-3">
-            <div
-              className="h-full bg-primary transition-all duration-300 ease-in-out"
-              style={{ width: `${currentStatus.progress}%` }}
-            />
-          </div>
-        )}
+        {(currentStatus?.status === "processing" ||
+          currentStatus?.status === "processing_pdf") &&
+          currentStatus.progress && (
+            <div className="h-2 w-full bg-gray-200 dark:bg-dark-3">
+              <div
+                className="h-full bg-primary transition-all duration-300 ease-in-out"
+                style={{ width: `${currentStatus.progress}%` }}
+              />
+            </div>
+          )}
 
         {/* Indeterminate progress bar for compiling */}
         {currentStatus?.status === "compiling" && (
@@ -144,6 +154,25 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
                 <div className="h-3 w-3 rounded-full bg-primary"></div>
                 <div className="h-3 w-3 rounded-full bg-primary"></div>
                 <div className="h-3 w-3 rounded-full bg-primary"></div>
+              </div>
+            </div>
+          )}
+
+          {currentStatus?.status === "processing_pdf" && (
+            <div className="text-dark dark:text-white">
+              <div className="mb-4 text-center">
+                <p className="mb-2">Processing PDF document...</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {currentStatus.content ||
+                    "Uploading PDF to processing service..."}
+                </p>
+              </div>
+              <div className="flex h-32 items-center justify-center">
+                <div className="flex animate-pulse space-x-2">
+                  <div className="h-3 w-3 rounded-full bg-primary"></div>
+                  <div className="h-3 w-3 rounded-full bg-primary"></div>
+                  <div className="h-3 w-3 rounded-full bg-primary"></div>
+                </div>
               </div>
             </div>
           )}
@@ -196,6 +225,8 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {currentStatus?.status === "thinking" &&
                 "Preparing to process..."}
+              {currentStatus?.status === "processing_pdf" &&
+                "Processing PDF document..."}
               {currentStatus?.status === "processing" &&
                 "Streaming results in real-time..."}
               {currentStatus?.status === "error" && "Generation failed."}
@@ -206,7 +237,9 @@ const StreamingOverlay: React.FC<StreamingOverlayProps> = ({
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {currentStatus?.status === "compiling"
                 ? "This may take a few seconds..."
-                : "This may take a minute or two for complex notes."}
+                : currentStatus?.status === "processing_pdf"
+                  ? "PDF processing may take several minutes..."
+                  : "This may take a minute or two for complex notes."}
             </div>
           )}
         </div>
