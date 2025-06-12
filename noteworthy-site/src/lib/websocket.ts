@@ -17,7 +17,13 @@ export interface LatexGenerationRequest {
 }
 
 export interface LatexGenerationStatus {
-  status: "thinking" | "processing" | "complete" | "compiling" | "error";
+  status:
+    | "thinking"
+    | "processing"
+    | "processing_pdf"
+    | "complete"
+    | "compiling"
+    | "error";
   content?: string;
   error?: string;
   progress?: number;

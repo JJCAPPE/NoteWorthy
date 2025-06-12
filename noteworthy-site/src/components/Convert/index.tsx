@@ -173,6 +173,48 @@ const Convert = () => {
       });
   };
 
+  /**
+   * Open the generated LaTeX document in Overleaf using their public "Open in Overleaf" API.
+   * Docs: https://www.overleaf.com/devs (see "Base64 Data URL" section)
+   */
+  const openInOverleaf = () => {
+    const texSource = fullCode || latexCode;
+    if (!texSource) {
+      toast.error("No LaTeX code available yet");
+      return;
+    }
+
+    try {
+      // Build a transient form that POSTs the snippet to Overleaf, avoiding URI length limits
+      const form = document.createElement("form");
+      form.action = "https://www.overleaf.com/docs";
+      form.method = "POST";
+      form.target = "_blank"; // open in new tab
+      form.style.display = "none";
+
+      // Overleaf accepts `encoded_snip` containing URL-encoded LaTeX source
+      const encodedInput = document.createElement("input");
+      encodedInput.type = "hidden";
+      encodedInput.name = "encoded_snip";
+      encodedInput.value = encodeURIComponent(texSource);
+      form.appendChild(encodedInput);
+
+      // Pass engine so it matches local compilation (xelatex)
+      const engineInput = document.createElement("input");
+      engineInput.type = "hidden";
+      engineInput.name = "engine";
+      engineInput.value = "xelatex";
+      form.appendChild(engineInput);
+
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    } catch (err) {
+      console.error("Failed to open in Overleaf", err);
+      toast.error("Unable to open in Overleaf");
+    }
+  };
+
   async function fetchComposedLatex(latexCode: string): Promise<string | ""> {
     try {
       const response = await fetch("/api/latex/compose", {
@@ -236,6 +278,23 @@ const Convert = () => {
               "PDF_COMPILATION_ERROR:",
               errorData.error,
               errorData.details,
+            );
+            toast(
+              (t: { id: string }) => (
+                <span>
+                  LaTeX compilation failed. You can debug it in Overleaf.
+                  <button
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      openInOverleaf();
+                    }}
+                    className="ml-2 underline"
+                  >
+                    Open in Overleaf
+                  </button>
+                </span>
+              ),
+              { duration: 8000 },
             );
             setPdfUrl("/error.pdf");
             return;
@@ -448,14 +507,14 @@ const Convert = () => {
                   </h3>
                 </div>
                 <p className="mb-6 text-center text-base text-body-color dark:text-dark-6">
-                  Upload JPEG, PNG, or WEBP files
+                  Upload JPEG, PNG, WEBP files or PDF documents
                 </p>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                   <div className="rounded-md border-2 border-dashed border-[#f1f1f1] p-8 text-center dark:border-dark-3">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,application/pdf"
                       multiple
                       onChange={handleFileChange}
                       className="hidden"
@@ -477,23 +536,52 @@ const Convert = () => {
 
                   {previewUrls.length > 0 && (
                     <div className="mt-4 flex flex-wrap justify-center gap-4">
-                      {previewUrls.map((url, index) => (
+                      {files.map((file, index) => (
                         <div
                           key={index}
                           className="relative overflow-hidden rounded border shadow-sm"
                         >
-                          <Image
-                            src={url}
-                            alt={`Preview ${index}`}
-                            className="max-h-64 object-contain"
-                            width={100}
-                            height={Math.min(
-                              100,
-                              (url.match(/.*\.(.*)/) || [])[1] === "gif"
-                                ? 200
-                                : 300,
-                            )}
-                          />
+                          {file.type === "application/pdf" ? (
+                            // PDF preview
+                            <div className="flex h-32 w-32 flex-col items-center justify-center bg-gray-50 p-4 dark:bg-dark-3">
+                              <svg
+                                className="mb-2 h-8 w-8 text-red-500"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span className="text-center text-xs font-medium text-gray-700 dark:text-gray-300">
+                                {file.name.length > 12
+                                  ? file.name.substring(0, 12) + "..."
+                                  : file.name}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                PDF
+                              </span>
+                            </div>
+                          ) : (
+                            // Image preview
+                            <Image
+                              src={previewUrls[index]}
+                              alt={`Preview ${index}`}
+                              className="max-h-64 object-contain"
+                              width={100}
+                              height={(() => {
+                                // Derive file extension from its name instead of the preview URL to avoid undefined errors
+                                const ext = file.name
+                                  .split(".")
+                                  .pop()
+                                  ?.toLowerCase();
+                                return Math.min(100, ext === "gif" ? 200 : 300);
+                              })()}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
@@ -750,6 +838,20 @@ const Convert = () => {
                           </div>
                         </div>
                       )}
+                    </div>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className={`ml-2 inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-6 py-3 text-base font-medium text-primary transition duration-300 ease-in-out ${
+                          fullCode && !isLoading
+                            ? "hover:bg-primary/10"
+                            : "cursor-not-allowed opacity-50"
+                        }`}
+                        onClick={openInOverleaf}
+                        disabled={!fullCode || isLoading}
+                      >
+                        Open in Overleaf
+                      </button>
                     </div>
                   </div>
 

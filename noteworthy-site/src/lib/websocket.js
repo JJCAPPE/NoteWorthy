@@ -7,6 +7,33 @@ const os = require("os");
 let io = null;
 
 /**
+ * Check if a file is a PDF based on its name
+ * @param {string} fileName - The name of the file
+ * @returns {boolean} - True if file is a PDF
+ */
+function isPDFFile(fileName) {
+    return fileName && fileName.toLowerCase().endsWith(".pdf");
+}
+
+/**
+ * Get appropriate status message based on file types
+ * @param {Array} files - Array of file objects
+ * @returns {string} - Status message
+ */
+function getProcessingMessage(files) {
+    const hasPDF = files.some((file) => isPDFFile(file.name));
+    const hasImages = files.some((file) => !isPDFFile(file.name));
+
+    if (hasPDF && hasImages) {
+        return "Processing PDF documents and images...";
+    } else if (hasPDF) {
+        return "Processing PDF documents...";
+    } else {
+        return "Processing images...";
+    }
+}
+
+/**
  * Initialize the WebSocket server
  */
 function initWebSocketServer(server) {
@@ -16,9 +43,7 @@ function initWebSocketServer(server) {
 
     io = new SocketIOServer(server, {
         cors: {
-            origin: process.env.NODE_ENV === "production" ?
-                ["https://noteworthy-site.vercel.app"] :
-                ["http://localhost:3000"],
+            origin: process.env.NODE_ENV === "production" ? ["https://noteworthy-site.vercel.app"] : ["http://localhost:3000"],
             methods: ["GET", "POST"],
             credentials: true,
         },
@@ -116,7 +141,7 @@ function initWebSocketServer(server) {
                 // Notify client we're starting processing
                 socket.emit("latexGenerationStatus", {
                     status: "processing",
-                    content: "Starting the AI model...",
+                    content: getProcessingMessage(data.files),
                     progress: 5,
                 });
                 console.log("[websocket.js] Starting Gemini model with streaming");

@@ -2,6 +2,14 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const dotenv = require("dotenv");
 const { ok, err, Result } = require("neverthrow");
+const fs = require("fs").promises;
+const path = require("path");
+
+// Import PDF handler functions
+const pdfHandlerPath = path.resolve(__dirname, "../../../../lib/pdfHandler.js");
+const { uploadPDFToGemini, waitForPDFProcessing, isPDFFile } = require(
+    pdfHandlerPath,
+);
 
 dotenv.config();
 // Load the GEMINI_API_KEY from environment variables
@@ -62,6 +70,89 @@ async function uploadToGemini(filePath, mimeType) {
     }
 }
 
+/**
+ * Process PDF files by uploading to Gemini Files API and waiting for processing
+ * @param {string} filePath - Path to the PDF file
+ * @param {Function} streamCallback - Callback for status updates
+ * @returns {Promise<{isOk: boolean, value?: any, error?: any}>}
+ */
+async function processPDFFile(filePath, streamCallback = null) {
+    try {
+        console.log(`[geminiIntegration] Processing PDF file: ${filePath}`);
+
+        const fileName = path.basename(filePath);
+
+        // Upload to Gemini Files API using file path
+        if (streamCallback) {
+            streamCallback("Uploading PDF to processing service...", 10);
+        }
+
+        const uploadResult = await uploadPDFToGemini(filePath, fileName);
+        if (uploadResult.isErr()) {
+            return uploadResult;
+        }
+
+        const { fileName: geminiFileName } = uploadResult.value;
+
+        // Wait for processing to complete
+        if (streamCallback) {
+            streamCallback("PDF uploaded, waiting for processing...", 15);
+        }
+
+        const processingResult = await waitForPDFProcessing(
+            geminiFileName,
+            streamCallback,
+        );
+
+        if (processingResult.isErr()) {
+            return processingResult;
+        }
+
+        if (streamCallback) {
+            streamCallback(
+                "PDF processing complete, preparing for LaTeX generation...",
+                60,
+            );
+        }
+
+        return ok({
+            file: processingResult.value.file,
+            uri: processingResult.value.uri,
+            mimeType: processingResult.value.mimeType,
+            fileName: geminiFileName,
+            isPDF: true,
+        });
+    } catch (error) {
+        console.error(`[geminiIntegration] Error processing PDF: ${error.message}`);
+        return err({
+            type: "PDF_PROCESSING_ERROR",
+            error: error.message,
+        });
+    }
+}
+
+/**
+ * Detect file type and return appropriate MIME type
+ * @param {string} filePath - Path to the file
+ * @returns {string} - MIME type
+ */
+function detectMimeType(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    switch (ext) {
+        case ".pdf":
+            return "application/pdf";
+        case ".jpg":
+        case ".jpeg":
+            return "image/jpeg";
+        case ".png":
+            return "image/png";
+        case ".webp":
+            return "image/webp";
+        default:
+            return "image/jpeg"; // Default fallback
+    }
+}
+
 const generationConfig = {
     temperature: 0.7,
     topP: 0.95,
@@ -85,30 +176,66 @@ async function run(
         hasStreamCallback: !!streamCallback,
     });
 
+    let uploadedFilesData = [];
+    let pdfFilesToCleanup = [];
+
     try {
         if (!Array.isArray(filePaths)) {
             filePaths = [filePaths];
         }
 
-        console.log("[geminiIntegration] Uploading files to Gemini API");
-        const uploadResults = await Promise.all(
-            filePaths.map((filePath) => uploadToGemini(filePath, "image/jpeg")),
-        );
+        console.log("[geminiIntegration] Processing files...");
 
-        const filesResult = Result.combine(uploadResults);
-        if (filesResult.isErr()) {
-            console.error(
-                "[geminiIntegration] File upload error:",
-                filesResult.error,
-            );
-            return err({
-                type: "GEMINI_FILE_UPLOAD_ERROR",
-                error: filesResult.error,
-            });
+        // Separate PDFs from images and process accordingly
+        for (const filePath of filePaths) {
+            const mimeType = detectMimeType(filePath);
+
+            if (isPDFFile(mimeType, filePath)) {
+                // Process PDF through Files API
+                console.log(`[geminiIntegration] Processing PDF: ${filePath}`);
+                const pdfResult = await processPDFFile(filePath, streamCallback);
+
+                if (pdfResult.isErr()) {
+                    console.error(
+                        "[geminiIntegration] PDF processing error:",
+                        pdfResult.error,
+                    );
+                    return pdfResult;
+                }
+
+                const pdfData = pdfResult.value;
+                uploadedFilesData.push({
+                    fileData: {
+                        mimeType: pdfData.mimeType,
+                        fileUri: pdfData.uri,
+                    },
+                });
+
+                // Keep track of PDF files for cleanup
+                pdfFilesToCleanup.push(pdfData.fileName);
+            } else {
+                // Process image through regular upload
+                console.log(`[geminiIntegration] Processing image: ${filePath}`);
+                const uploadResult = await uploadToGemini(filePath, mimeType);
+
+                if (uploadResult.isErr()) {
+                    console.error(
+                        "[geminiIntegration] Image upload error:",
+                        uploadResult.error,
+                    );
+                    return uploadResult;
+                }
+
+                uploadedFilesData.push({
+                    fileData: {
+                        mimeType: uploadResult.value.file.mimeType,
+                        fileUri: uploadResult.value.file.uri,
+                    },
+                });
+            }
         }
 
-        console.log("[geminiIntegration] Files uploaded successfully");
-        const uploadedFilesData = filesResult.value.map((result) => result.file);
+        console.log("[geminiIntegration] All files processed successfully");
 
         let promtText = getPromptText(processType);
         console.log("[geminiIntegration] Using model:", getModel(modelType));
@@ -123,14 +250,7 @@ async function run(
                 generationConfig,
                 history: [{
                         role: "user",
-                        parts: [
-                            ...uploadedFilesData.map((file) => ({
-                                fileData: {
-                                    mimeType: file.mimeType,
-                                    fileUri: file.uri,
-                                },
-                            })),
-                        ],
+                        parts: uploadedFilesData,
                     },
                     {
                         role: "user",
@@ -165,9 +285,9 @@ async function run(
                         accumulatedOutput += chunkText;
                         counter++;
 
-                        // Calculate progress (approximate)
+                        // Calculate progress (approximate) - start from 65% since PDF processing takes 60%
                         const progress = Math.min(
-                            5 + Math.floor((counter / totalChunks) * 95),
+                            65 + Math.floor((counter / totalChunks) * 35),
                             99,
                         );
 
@@ -199,8 +319,10 @@ async function run(
             }
 
             console.log("[geminiIntegration] Generation completed successfully");
+
             return ok({
                 output: accumulatedOutput,
+                pdfFilesToCleanup: pdfFilesToCleanup,
             });
         } catch (apiError) {
             console.error("[geminiIntegration] API error:", apiError);
@@ -215,6 +337,32 @@ async function run(
             type: "GEMINI_GENERATION_ERROR",
             error: error.message,
         });
+    } finally {
+        // Clean up PDF files in the background
+        if (pdfFilesToCleanup.length > 0) {
+            console.log("[geminiIntegration] Cleaning up PDF files...");
+            // Don't await this - do it in background to not delay response
+            cleanupPDFFiles(pdfFilesToCleanup);
+        }
+    }
+}
+
+/**
+ * Clean up PDF files from Gemini Files API (background operation)
+ * @param {string[]} fileNames - Array of file names to cleanup
+ */
+async function cleanupPDFFiles(fileNames) {
+    const { cleanupGeminiFile } = require(pdfHandlerPath);
+
+    for (const fileName of fileNames) {
+        try {
+            await cleanupGeminiFile(fileName);
+        } catch (error) {
+            console.error(
+                `[geminiIntegration] Failed to cleanup PDF file ${fileName}:`,
+                error,
+            );
+        }
     }
 }
 
