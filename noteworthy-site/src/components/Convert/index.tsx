@@ -173,6 +173,48 @@ const Convert = () => {
       });
   };
 
+  /**
+   * Open the generated LaTeX document in Overleaf using their public "Open in Overleaf" API.
+   * Docs: https://www.overleaf.com/devs (see "Base64 Data URL" section)
+   */
+  const openInOverleaf = () => {
+    const texSource = fullCode || latexCode;
+    if (!texSource) {
+      toast.error("No LaTeX code available yet");
+      return;
+    }
+
+    try {
+      // Build a transient form that POSTs the snippet to Overleaf, avoiding URI length limits
+      const form = document.createElement("form");
+      form.action = "https://www.overleaf.com/docs";
+      form.method = "POST";
+      form.target = "_blank"; // open in new tab
+      form.style.display = "none";
+
+      // Overleaf accepts `encoded_snip` containing URL-encoded LaTeX source
+      const encodedInput = document.createElement("input");
+      encodedInput.type = "hidden";
+      encodedInput.name = "encoded_snip";
+      encodedInput.value = encodeURIComponent(texSource);
+      form.appendChild(encodedInput);
+
+      // Pass engine so it matches local compilation (xelatex)
+      const engineInput = document.createElement("input");
+      engineInput.type = "hidden";
+      engineInput.name = "engine";
+      engineInput.value = "xelatex";
+      form.appendChild(engineInput);
+
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    } catch (err) {
+      console.error("Failed to open in Overleaf", err);
+      toast.error("Unable to open in Overleaf");
+    }
+  };
+
   async function fetchComposedLatex(latexCode: string): Promise<string | ""> {
     try {
       const response = await fetch("/api/latex/compose", {
@@ -236,6 +278,23 @@ const Convert = () => {
               "PDF_COMPILATION_ERROR:",
               errorData.error,
               errorData.details,
+            );
+            toast(
+              (t: { id: string }) => (
+                <span>
+                  LaTeX compilation failed. You can debug it in Overleaf.
+                  <button
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      openInOverleaf();
+                    }}
+                    className="ml-2 underline"
+                  >
+                    Open in Overleaf
+                  </button>
+                </span>
+              ),
+              { duration: 8000 },
             );
             setPdfUrl("/error.pdf");
             return;
@@ -513,13 +572,14 @@ const Convert = () => {
                               alt={`Preview ${index}`}
                               className="max-h-64 object-contain"
                               width={100}
-                              height={Math.min(
-                                100,
-                                (previewUrls[index].match(/.*\.(.*)/) ||
-                                  [])[1] === "gif"
-                                  ? 200
-                                  : 300,
-                              )}
+                              height={(() => {
+                                // Derive file extension from its name instead of the preview URL to avoid undefined errors
+                                const ext = file.name
+                                  .split(".")
+                                  .pop()
+                                  ?.toLowerCase();
+                                return Math.min(100, ext === "gif" ? 200 : 300);
+                              })()}
                             />
                           )}
                         </div>
@@ -778,6 +838,20 @@ const Convert = () => {
                           </div>
                         </div>
                       )}
+                    </div>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className={`ml-2 inline-flex items-center justify-center rounded-md border border-primary bg-transparent px-6 py-3 text-base font-medium text-primary transition duration-300 ease-in-out ${
+                          fullCode && !isLoading
+                            ? "hover:bg-primary/10"
+                            : "cursor-not-allowed opacity-50"
+                        }`}
+                        onClick={openInOverleaf}
+                        disabled={!fullCode || isLoading}
+                      >
+                        Open in Overleaf
+                      </button>
                     </div>
                   </div>
 
