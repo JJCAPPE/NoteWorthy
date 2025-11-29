@@ -3,10 +3,10 @@ import path from "path";
 import { promises as fsPromises } from "fs";
 import os from "os";
 import { ok, err, Result } from "neverthrow";
-import { run } from  "./geminiIntegration"
+import { run } from "./geminiIntegration";
 
 export const runtime = "nodejs";
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // This tells Next.js not to use the default body parser
 // so we can handle the request body manually with no size limit
@@ -15,7 +15,7 @@ export const config = {
     // Disable Next.js's default body parser
     bodyParser: false,
   },
-}
+};
 
 export async function POST(request: NextRequest) {
   const uploadDir = path.join(os.tmpdir(), "uploads", "temp");
@@ -63,13 +63,6 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-  const latexCode = await run(filePaths, processType, modelType, customPrompt);
-
-  if (latexCode.isErr()) {
-  // The geminiIntegration.run helper returns neverthrow's Result but
-  // TypeScript struggles to infer the correct union from the JS file.
-  // Cast to `any` so we can safely use `.isErr()` at runtime without a
-  // compilation failure.
   // eslint-disable-next-line
   const latexCode: any = await run(
     filePaths,
