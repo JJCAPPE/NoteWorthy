@@ -66,6 +66,20 @@ export async function POST(request: NextRequest) {
   const latexCode = await run(filePaths, processType, modelType, customPrompt);
 
   if (latexCode.isErr()) {
+  // The geminiIntegration.run helper returns neverthrow's Result but
+  // TypeScript struggles to infer the correct union from the JS file.
+  // Cast to `any` so we can safely use `.isErr()` at runtime without a
+  // compilation failure.
+  // eslint-disable-next-line
+  const latexCode: any = await run(
+    filePaths,
+    processType,
+    modelType,
+    customPrompt,
+  );
+
+  if (latexCode.isErr()) {
+    // eslint-disable-next-line
     const { type, error } = latexCode.error;
     const cleanupResult = await cleanUpFiles(uploadDir);
     if (cleanupResult.isErr()) {
@@ -80,6 +94,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // eslint-disable-next-line
   let cleanedLatex = latexCode.value.output.trim();
 
   if (cleanedLatex.startsWith("```latex")) {

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import StreamingOverlay from "../StreamingOverlay";
@@ -173,6 +173,48 @@ const Convert = () => {
       });
   };
 
+  /**
+   * Open the generated LaTeX document in Overleaf using their public "Open in Overleaf" API.
+   * Docs: https://www.overleaf.com/devs (see "Base64 Data URL" section)
+   */
+  const openInOverleaf = useCallback(() => {
+    const texSource = fullCode || latexCode;
+    if (!texSource) {
+      toast.error("No LaTeX code available yet");
+      return;
+    }
+
+    try {
+      // Build a transient form that POSTs the snippet to Overleaf, avoiding URI length limits
+      const form = document.createElement("form");
+      form.action = "https://www.overleaf.com/docs";
+      form.method = "POST";
+      form.target = "_blank"; // open in new tab
+      form.style.display = "none";
+
+      // Overleaf accepts `encoded_snip` containing URL-encoded LaTeX source
+      const encodedInput = document.createElement("input");
+      encodedInput.type = "hidden";
+      encodedInput.name = "encoded_snip";
+      encodedInput.value = encodeURIComponent(texSource);
+      form.appendChild(encodedInput);
+
+      // Pass engine so it matches local compilation (xelatex)
+      const engineInput = document.createElement("input");
+      engineInput.type = "hidden";
+      engineInput.name = "engine";
+      engineInput.value = "xelatex";
+      form.appendChild(engineInput);
+
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    } catch (err) {
+      console.error("Failed to open in Overleaf", err);
+      toast.error("Unable to open in Overleaf");
+    }
+  }, [fullCode, latexCode]);
+
   async function fetchComposedLatex(latexCode: string): Promise<string | ""> {
     try {
       const response = await fetch("/api/latex/compose", {
@@ -263,7 +305,7 @@ const Convert = () => {
     } else if (latexStatus?.status === "error") {
       setIsLoading(false);
     }
-  }, [latexStatus, files, processType, customPrompt]);
+  }, [latexStatus, files, processType, customPrompt, openInOverleaf]);
 
   // Add event listener for our custom status update
   useEffect(() => {

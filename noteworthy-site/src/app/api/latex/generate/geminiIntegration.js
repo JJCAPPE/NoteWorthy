@@ -2,6 +2,15 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const dotenv = require("dotenv");
 const { ok, err, Result } = require("neverthrow");
+const fs = require("fs").promises;
+const path = require("path");
+// Import PDF handler functions statically so that Next.js/webpack can bundle them
+const {
+    uploadPDFToGemini,
+    waitForPDFProcessing,
+    isPDFFile,
+    cleanupGeminiFile,
+} = require("../../../../lib/pdfHandler.js");
 
 dotenv.config();
 // Load the GEMINI_API_KEY from environment variables
@@ -35,11 +44,11 @@ function getPromptText(processType) {
 function getModel(model) {
     switch (model) {
         case "regular":
-            return "gemini-2.0-flash";
+            return "gemini-flash-latest";
         case "fast":
             return "gemini-2.0-flash-lite";
         case "pro":
-            return "gemini-2.5-pro-exp-03-25";
+            return "gemini-3-pro-preview";
     }
 }
 
@@ -215,6 +224,30 @@ async function run(
             type: "GEMINI_GENERATION_ERROR",
             error: error.message,
         });
+    } finally {
+        // Clean up PDF files in the background
+        if (pdfFilesToCleanup.length > 0) {
+            console.log("[geminiIntegration] Cleaning up PDF files...");
+            // Don't await this - do it in background to not delay response
+            cleanupPDFFiles(pdfFilesToCleanup);
+        }
+    }
+}
+
+/**
+ * Clean up PDF files from Gemini Files API (background operation)
+ * @param {string[]} fileNames - Array of file names to cleanup
+ */
+async function cleanupPDFFiles(fileNames) {
+    for (const fileName of fileNames) {
+        try {
+            await cleanupGeminiFile(fileName);
+        } catch (error) {
+            console.error(
+                `[geminiIntegration] Failed to cleanup PDF file ${fileName}:`,
+                error,
+            );
+        }
     }
 }
 
