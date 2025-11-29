@@ -2,6 +2,8 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const dotenv = require("dotenv");
 const { ok, err, Result } = require("neverthrow");
+const fs = require("fs").promises;
+const path = require("path");
 
 dotenv.config();
 // Load the GEMINI_API_KEY from environment variables
@@ -35,11 +37,11 @@ function getPromptText(processType) {
 function getModel(model) {
     switch (model) {
         case "regular":
-            return "gemini-2.0-flash";
+            return "gemini-flash-latest";
         case "fast":
             return "gemini-2.0-flash-lite";
         case "pro":
-            return "gemini-2.5-pro-exp-03-25";
+            return "gemini-3-pro-preview";
     }
 }
 
