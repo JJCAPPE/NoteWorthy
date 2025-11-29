@@ -4,13 +4,6 @@ const dotenv = require("dotenv");
 const { ok, err, Result } = require("neverthrow");
 const fs = require("fs").promises;
 const path = require("path");
-// Import PDF handler functions statically so that Next.js/webpack can bundle them
-const {
-    uploadPDFToGemini,
-    waitForPDFProcessing,
-    isPDFFile,
-    cleanupGeminiFile,
-} = require("../../../../lib/pdfHandler.js");
 
 dotenv.config();
 // Load the GEMINI_API_KEY from environment variables
@@ -224,30 +217,6 @@ async function run(
             type: "GEMINI_GENERATION_ERROR",
             error: error.message,
         });
-    } finally {
-        // Clean up PDF files in the background
-        if (pdfFilesToCleanup.length > 0) {
-            console.log("[geminiIntegration] Cleaning up PDF files...");
-            // Don't await this - do it in background to not delay response
-            cleanupPDFFiles(pdfFilesToCleanup);
-        }
-    }
-}
-
-/**
- * Clean up PDF files from Gemini Files API (background operation)
- * @param {string[]} fileNames - Array of file names to cleanup
- */
-async function cleanupPDFFiles(fileNames) {
-    for (const fileName of fileNames) {
-        try {
-            await cleanupGeminiFile(fileName);
-        } catch (error) {
-            console.error(
-                `[geminiIntegration] Failed to cleanup PDF file ${fileName}:`,
-                error,
-            );
-        }
     }
 }
 
