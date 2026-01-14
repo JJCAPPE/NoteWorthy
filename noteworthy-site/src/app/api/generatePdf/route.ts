@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const DEFAULT_COMPILER_URL =
-  "https://latex-service-7822565772.us-central1.run.app/compile";
+const DEFAULT_COMPILER_URLS = ["https://latex.ytotech.com/builds/sync"];
+const TEXAPI_URL = "https://texapi.ovh/api/latex/compile";
+const LATEXLITE_URL = "https://latexlite.com/v1/renders-sync";
 const COMPILER_TIMEOUT_MS = 30000;
 const RETRY_DELAYS_MS = [400, 1200];
 
@@ -11,6 +12,7 @@ type CompileAttempt = {
   contentType: string;
   body: string;
   label: string;
+  headers?: Record<string, string>;
 };
 
 const getCompilerUrls = () => {
@@ -27,7 +29,17 @@ const getCompilerUrls = () => {
     return [singleUrl.trim()];
   }
 
-  return [DEFAULT_COMPILER_URL];
+  const urls = [...DEFAULT_COMPILER_URLS];
+
+  if (process.env.TEXAPI_OVH_API_KEY) {
+    urls.push(TEXAPI_URL);
+  }
+
+  if (process.env.LATEXLITE_API_KEY) {
+    urls.push(LATEXLITE_URL);
+  }
+
+  return urls;
 };
 
 const isPdfBuffer = (buffer: Uint8Array) =>
@@ -49,10 +61,7 @@ const fetchWithTimeout = async (url: string, init: RequestInit) => {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const compileWithTarget = async (
-  url: string,
-  latexCode: string,
-): Promise<Buffer | { errors: string[] }> => {
+const buildAttempts = (url: string, latexCode: string): CompileAttempt[] => {
   const attempts: CompileAttempt[] = [
     {
       contentType: "application/json",
@@ -71,6 +80,55 @@ const compileWithTarget = async (
     },
   ];
 
+  if (url.includes("latex.ytotech.com") || url.includes("/builds/sync")) {
+    attempts.unshift({
+      contentType: "application/json",
+      body: JSON.stringify({
+        compiler: "pdflatex",
+        resources: [
+          {
+            path: "main.tex",
+            content: latexCode,
+            main: true,
+          },
+        ],
+      }),
+      label: "latex-on-http",
+      headers: { Accept: "application/pdf" },
+    });
+  }
+
+  if (url.includes("texapi.ovh") && process.env.TEXAPI_OVH_API_KEY) {
+    attempts.unshift({
+      contentType: "application/json",
+      body: JSON.stringify({ content: latexCode }),
+      label: "texapi-ovh",
+      headers: {
+        "X-API-KEY": process.env.TEXAPI_OVH_API_KEY,
+      },
+    });
+  }
+
+  if (url.includes("latexlite.com") && process.env.LATEXLITE_API_KEY) {
+    attempts.unshift({
+      contentType: "application/json",
+      body: JSON.stringify({ template: latexCode }),
+      label: "latexlite",
+      headers: {
+        Authorization: `Bearer ${process.env.LATEXLITE_API_KEY}`,
+      },
+    });
+  }
+
+  return attempts;
+};
+
+const compileWithTarget = async (
+  url: string,
+  latexCode: string,
+): Promise<Buffer | { errors: string[] }> => {
+  const attempts = buildAttempts(url, latexCode);
+
   const errors: string[] = [];
 
   for (const attempt of attempts) {
@@ -78,7 +136,10 @@ const compileWithTarget = async (
       try {
         const response = await fetchWithTimeout(url, {
           method: "POST",
-          headers: { "Content-Type": attempt.contentType },
+          headers: {
+            "Content-Type": attempt.contentType,
+            ...attempt.headers,
+          },
           body: attempt.body,
         });
 
