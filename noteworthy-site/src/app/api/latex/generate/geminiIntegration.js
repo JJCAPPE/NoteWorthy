@@ -35,11 +35,11 @@ function getPromptText(processType) {
 function getModel(model) {
     switch (model) {
         case "regular":
-            return "gemini-2.0-flash";
+            return "gemini-3-flash-preview";
         case "fast":
-            return "gemini-2.0-flash-lite";
+            return "gemini-flash-latest";
         case "pro":
-            return "gemini-2.5-pro-exp-03-25";
+            return "gemini-3-pro-preview";
     }
 }
 
@@ -70,6 +70,29 @@ const generationConfig = {
     responseMimeType: "text/plain",
 };
 
+const GENERATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+function normalizeFiles(filePaths) {
+    if (!Array.isArray(filePaths)) {
+        filePaths = [filePaths];
+    }
+
+    return filePaths.map((file) => {
+        if (typeof file === "string") {
+            return { path: file, mimeType: "image/jpeg" };
+        }
+
+        if (file && typeof file === "object" && file.path) {
+            return {
+                path: file.path,
+                mimeType: file.mimeType || "image/jpeg",
+            };
+        }
+
+        throw new Error("Invalid file path input");
+    });
+}
+
 async function run(
     filePaths,
     processType,
@@ -86,13 +109,11 @@ async function run(
     });
 
     try {
-        if (!Array.isArray(filePaths)) {
-            filePaths = [filePaths];
-        }
+        const normalizedFiles = normalizeFiles(filePaths);
 
         console.log("[geminiIntegration] Uploading files to Gemini API");
         const uploadResults = await Promise.all(
-            filePaths.map((filePath) => uploadToGemini(filePath, "image/jpeg")),
+            normalizedFiles.map((file) => uploadToGemini(file.path, file.mimeType)),
         );
 
         const filesResult = Result.combine(uploadResults);
@@ -153,6 +174,7 @@ async function run(
             let accumulatedOutput = "";
             let counter = 0;
             const totalChunks = 50; // Estimate for progress calculation
+            const deadline = Date.now() + GENERATION_TIMEOUT_MS;
 
             try {
                 if (streamCallback) {
@@ -161,6 +183,9 @@ async function run(
                     let lastProgressReported = 0;
 
                     for await (const chunk of streamResult.stream) {
+                        if (Date.now() > deadline) {
+                            throw new Error("Generation timed out");
+                        }
                         const chunkText = chunk.text();
                         accumulatedOutput += chunkText;
                         counter++;
@@ -185,6 +210,9 @@ async function run(
                     // Original behavior for REST API mode
                     console.log("[geminiIntegration] Processing without stream callback");
                     for await (const chunk of streamResult.stream) {
+                        if (Date.now() > deadline) {
+                            throw new Error("Generation timed out");
+                        }
                         const chunkText = chunk.text();
                         process.stdout.write(chunkText);
                         accumulatedOutput += chunkText;

@@ -92,8 +92,7 @@ const Convert = () => {
     useState<boolean>(false);
 
   // Initialize WebSocket connection
-  const { latexStatus, startLatexGeneration, connected, error, socket } =
-    useWebSocket();
+  const { latexStatus, startLatexGeneration, connected } = useWebSocket();
 
   useEffect(() => {
     if (files.length === 0) {
@@ -307,20 +306,12 @@ const Convert = () => {
       const actualModelType = modelType === "auto" ? "regular" : modelType;
 
       // Detailed debugging of WebSocket state
-      console.log("🔌 WebSocket status check:", {
+      console.log("🛰️ Streaming status check:", {
         files: files.length,
         processType,
         actualModelType,
         customPrompt: customPrompt ? "present" : "not present",
-        connected, // Check if websocket is connected
-        socketExists: !!socket, // Check if socket object exists
-        socket: socket
-          ? {
-              id: socket.id,
-              connected: socket.connected,
-              disconnected: socket.disconnected,
-            }
-          : "null",
+        connected,
       });
 
       // Force a small delay to make sure logs are printed in order
